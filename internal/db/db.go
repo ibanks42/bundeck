@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 )
 
@@ -82,6 +83,17 @@ func InitDB(db *sql.DB) error {
 
 		fmt.Printf("Applied migration version %d\n", version)
 	}
+
+	go func() {
+		ticker := time.NewTicker(5 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			_, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+			if err != nil {
+				log.Println("Failed to truncate WAL file:", err)
+			}
+		}
+	}()
 
 	return nil
 }
@@ -201,7 +213,8 @@ func (s *PluginStore) UpdateCode(id int, code string, image []byte, imageType st
 func (s *PluginStore) UpdateOrder(orders []struct {
 	ID       int `json:"id"`
 	OrderNum int `json:"order_num"`
-}) error {
+},
+) error {
 	tx, err := s.db.Begin()
 	if err != nil {
 		return err

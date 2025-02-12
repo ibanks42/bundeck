@@ -7,17 +7,15 @@ import (
 	"bundeck/internal/settings"
 	"database/sql"
 	"embed"
+	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
-	"runtime"
 	"strconv"
 
 	"fyne.io/systray"
+	_ "modernc.org/sqlite"
 
 	"github.com/gofiber/fiber/v2"
-	_ "modernc.org/sqlite"
 )
 
 //go:embed web/dist
@@ -29,18 +27,7 @@ var logo []byte
 //go:embed logo.icns
 var macLogo []byte
 
-func init() {
-	if runtime.GOOS == "darwin" {
-		// Get path to executable
-		exe, err := os.Executable()
-		if err == nil {
-			appPath := filepath.Dir(filepath.Dir(filepath.Dir(exe)))
-			if filepath.Base(appPath) == "BunDeck.app" {
-				os.Chdir(appPath)
-			}
-		}
-	}
-}
+var dbPath = "./plugins.db"
 
 func onReady() {
 	systray.SetIcon(logo)
@@ -55,7 +42,7 @@ func onReady() {
 
 	pragmas := "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=journal_size_limit(200000000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=cache_size(-16000)"
 	// Initialize SQLite database
-	database, err := sql.Open("sqlite", "./plugins.db"+pragmas)
+	database, err := sql.Open("sqlite", dbPath+pragmas)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,6 +92,7 @@ func onReady() {
 }
 
 func onExit() {
+	fmt.Println("closing!")
 }
 
 func main() {

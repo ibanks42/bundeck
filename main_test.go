@@ -18,8 +18,8 @@ import (
 
 func TestMainIntegration(t *testing.T) {
 	// Create a temporary database file
-	dbFile := "test_plugins.db"
-	defer os.Remove(dbFile)
+	dbPath = "test_plugins.db"
+	defer os.Remove(dbPath)
 
 	// Start the server in a goroutine
 	go func() {

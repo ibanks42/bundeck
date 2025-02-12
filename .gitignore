@@ -7,9 +7,10 @@
 *.dll
 *.so
 *.dylib
-*bundeck*
 
+*bundeck*
 *plugins.db*
+*settings.json
 
 # Test binary, built with `go test -c`
 *.test
@@ -24,3 +25,4 @@
 go.work
 
 /tmp
+

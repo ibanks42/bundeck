@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 
 [build]
 args_bin = []
-bin = "godeck-dbg"
+bin = "bundeck-dbg"
 cmd = "./debug.sh"
 delay = 1000
 exclude_dir = [
@@ -35,7 +35,7 @@ send_interrupt = false
 stop_on_error = false
 
 [color]
-app = ""
+app = "blue"
 build = "yellow"
 main = "magenta"
 runner = "green"
