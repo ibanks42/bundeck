@@ -3,7 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"log"
 	"time"
 )
 
@@ -84,18 +83,24 @@ func InitDB(db *sql.DB) error {
 		fmt.Printf("Applied migration version %d\n", version)
 	}
 
+	// Do periodic WAL checkpoints
+	checkpoint(db)
 	go func() {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 		for range ticker.C {
-			_, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
-			if err != nil {
-				log.Println("Failed to truncate WAL file:", err)
-			}
+			checkpoint(db)
 		}
 	}()
 
 	return nil
+}
+
+func checkpoint(db *sql.DB) {
+	_, err := db.Exec("PRAGMA wal_checkpoint(TRUNCATE);")
+	if err != nil {
+		_ = fmt.Errorf("failed to truncate WAL file: %w", err)
+	}
 }
 
 type Plugin struct {
