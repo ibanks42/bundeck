@@ -119,6 +119,7 @@ jobs:
           </plist>
           EOF
           tar -czf bundeck-darwin-arm64.app.tar.gz bundeck.app
+          mv mac-build/bundeck-darwin-arm64 bundeck-darwin-arm64
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -129,6 +130,7 @@ jobs:
             bundeck-windows-amd64.exe
             bundeck-darwin-intel.app.tar.gz
             bundeck-darwin-arm64.app.tar.gz
+            bundeck-darwin-arm64
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
