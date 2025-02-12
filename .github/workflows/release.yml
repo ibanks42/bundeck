@@ -28,17 +28,17 @@ jobs:
           bun run build
           cd ..
 
-      - name: Build Linux (amd64)
-        run: |
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-amd64 .
-
-      - name: Build Linux (arm64)
-        run: |
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-arm64 .
-
-      - name: Build Windows (amd64)
-        run: |
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-amd64.exe .
+      # - name: Build Linux (amd64)
+      #   run: |
+      #     GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-amd64 .
+      #
+      # - name: Build Linux (arm64)
+      #   run: |
+      #     GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-arm64 .
+      #
+      # - name: Build Windows (amd64)
+      #   run: |
+      #     GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-amd64.exe .
 
       - name: Build MacOS (amd64/arm64)
         uses: crazy-max/ghaction-xgo@v3
@@ -47,7 +47,7 @@ jobs:
           go_version: 1.23
           dest: mac-build
           prefix: bundeck
-          targets: darwin/amd64,darwin/arm64
+          targets: darwin/arm64
           v: true
           x: false
           race: false
@@ -55,41 +55,40 @@ jobs:
           buildmode: default
           trimpath: true
 
-      - name: Create macOS .app bundle (amd64)
-        run: |
-          mkdir -p bundeck.app/Contents/MacOS
-          mkdir -p bundeck.app/Contents/Resources
-          cp mac-build/bundeck-darwin-amd64 bundeck.app/Contents/MacOS/bundeck
-          cp logo.icns bundeck.app/Contents/Resources/
-          cat > bundeck.app/Contents/Info.plist << EOF
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>CFBundleExecutable</key>
-              <string>bundeck</string>
-              <key>CFBundleIconFile</key>
-              <string>logo</string>
-              <key>CFBundleIdentifier</key>
-              <string>com.bundeck.app</string>
-              <key>CFBundleName</key>
-              <string>bundeck</string>
-              <key>CFBundlePackageType</key>
-              <string>APPL</string>
-              <key>CFBundleShortVersionString</key>
-              <string>${GITHUB_REF#refs/tags/}</string>
-              <key>LSMinimumSystemVersion</key>
-              <string>10.13</string>
-              <key>NSHighResolutionCapable</key>
-              <true/>
-          </dict>
-          </plist>
-          EOF
-          tar -czf bundeck-darwin-intel.app.tar.gz bundeck.app
+      # - name: Create macOS .app bundle (amd64)
+      #   run: |
+      #     mkdir -p bundeck.app/Contents/MacOS
+      #     mkdir -p bundeck.app/Contents/Resources
+      #     cp mac-build/bundeck-darwin-amd64 bundeck.app/Contents/MacOS/bundeck
+      #     cp logo.icns bundeck.app/Contents/Resources/
+      #     cat > bundeck.app/Contents/Info.plist << EOF
+      #     <?xml version="1.0" encoding="UTF-8"?>
+      #     <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      #     <plist version="1.0">
+      #     <dict>
+      #         <key>CFBundleExecutable</key>
+      #         <string>bundeck</string>
+      #         <key>CFBundleIconFile</key>
+      #         <string>logo</string>
+      #         <key>CFBundleIdentifier</key>
+      #         <string>com.bundeck.app</string>
+      #         <key>CFBundleName</key>
+      #         <string>bundeck</string>
+      #         <key>CFBundlePackageType</key>
+      #         <string>APPL</string>
+      #         <key>CFBundleShortVersionString</key>
+      #         <string>${GITHUB_REF#refs/tags/}</string>
+      #         <key>LSMinimumSystemVersion</key>
+      #         <string>10.13</string>
+      #         <key>NSHighResolutionCapable</key>
+      #         <true/>
+      #     </dict>
+      #     </plist>
+      #     EOF
+      #     tar -czf bundeck-darwin-intel.app.tar.gz bundeck.app
 
       - name: Create macOS .app bundle (arm64)
         run: |
-          rm -rf bundeck.app
           mkdir -p bundeck.app/Contents/MacOS
           mkdir -p bundeck.app/Contents/Resources
           cp mac-build/bundeck-darwin-arm64 bundeck.app/Contents/MacOS/bundeck
