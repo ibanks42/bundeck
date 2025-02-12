@@ -1,0 +1,133 @@
+name: Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Build Web Assets
+        run: |
+          cd web
+          bun install
+          bun run build
+          cd ..
+
+      - name: Build Linux (amd64)
+        run: |
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-amd64 .
+
+      - name: Build Linux (arm64)
+        run: |
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-arm64 .
+
+      - name: Build Windows (amd64)
+        run: |
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-amd64.exe .
+
+      - name: Build MacOS (amd64/arm64)
+        uses: crazy-max/ghaction-xgo@v3
+        with:
+          xgo_version: latest
+          go_version: 1.23
+          dest: mac-build
+          prefix: BunDeck
+          targets: darwin/amd64,darwin/arm64
+          v: true
+          x: false
+          race: false
+          ldflags: -s -w
+          buildmode: default
+          trimpath: true
+
+      - name: Create macOS .app bundle (amd64)
+        run: |
+          mkdir -p BunDeck.app/Contents/MacOS
+          mkdir -p BunDeck.app/Contents/Resources
+          cp mac-build/BunDeck-darwin-amd64 BunDeck.app/Contents/MacOS/BunDeck
+          cp logo.icns BunDeck.app/Contents/Resources/
+          cat > BunDeck.app/Contents/Info.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>BunDeck</string>
+              <key>CFBundleIconFile</key>
+              <string>logo</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.bundeck.app</string>
+              <key>CFBundleName</key>
+              <string>BunDeck</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${GITHUB_REF#refs/tags/}</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.13</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          tar -czf BunDeck-darwin-intel.app.tar.gz BunDeck.app
+
+      - name: Create macOS .app bundle (arm64)
+        run: |
+          mkdir -p BunDeck-arm64.app/Contents/MacOS
+          mkdir -p BunDeck-arm64.app/Contents/Resources
+          cp mac-build/BunDeck-darwin-arm64 BunDeck-arm64.app/Contents/MacOS/BunDeck
+          cp logo.icns BunDeck-arm64.app/Contents/Resources/
+          cat > BunDeck-arm64.app/Contents/Info.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleExecutable</key>
+              <string>BunDeck</string>
+              <key>CFBundleIconFile</key>
+              <string>logo</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.bundeck.app</string>
+              <key>CFBundleName</key>
+              <string>BunDeck</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>${GITHUB_REF#refs/tags/}</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>10.13</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+          tar -czf BunDeck-darwin-arm64.app.tar.gz BunDeck-arm64.app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            bundeck-linux-amd64
+            bundeck-linux-arm64
+            bundeck-windows-amd64.exe
+            BunDeck-darwin-intel.app.tar.gz
+            BunDeck-darwin-arm64.app.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
