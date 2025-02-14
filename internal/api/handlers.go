@@ -3,6 +3,8 @@ package api
 import (
 	"bundeck/internal/db"
 	"database/sql"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
@@ -22,6 +24,14 @@ type PluginStore interface {
 		OrderNum int `json:"order_num"`
 	}) error
 	Delete(id int) error
+}
+
+type PluginResponse struct {
+	Name      string `json:"name"`
+	Code      string `json:"code"`
+	OrderNum  int    `json:"order_num"`
+	Image     string `json:"image"`
+	ImageType string `json:"image_type"`
 }
 
 // Runner interface for plugin execution
@@ -107,17 +117,26 @@ func (h *Handlers) CreatePlugin(c *fiber.Ctx) error {
 }
 
 func (h *Handlers) GetAllPlugins(c *fiber.Ctx) error {
-	plugins, err := h.store.GetAll()
+	dbPlugins, err := h.store.GetAll()
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": err.Error(),
 		})
 	}
+	var plugins []PluginResponse
 
 	// Convert image data to base64 for JSON response
-	for i := range plugins {
-		if len(plugins[i].Image) > 0 {
-			plugins[i].Image = nil // Clear binary data
+	for i := range dbPlugins {
+		if len(dbPlugins[i].Image) > 0 {
+			base := base64.StdEncoding.EncodeToString(dbPlugins[i].Image)
+			dataUrl := fmt.Sprintf("data:%s;base64,%s", *dbPlugins[i].ImageType, base)
+			plugins = append(plugins, PluginResponse{
+				Name:      dbPlugins[i].Name,
+				Code:      dbPlugins[i].Code,
+				OrderNum:  dbPlugins[i].OrderNum,
+				Image:     dataUrl,
+				ImageType: *dbPlugins[i].ImageType,
+			})
 		}
 	}
 

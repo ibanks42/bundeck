@@ -19,7 +19,6 @@ const TanStackRouterDevtools =
       );
 
 function RootComponent() {
-  console.log(import.meta);
   return (
     <main className='flex flex-col'>
       <hr />
