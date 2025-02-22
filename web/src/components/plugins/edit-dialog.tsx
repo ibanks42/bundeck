@@ -40,15 +40,7 @@ export function EditPluginDialog({
 	onOpenChange,
 	onSave,
 }: EditPluginDialogProps) {
-	const router = useRouter();
-	const { toast } = useToast();
-	const [selectedImage, setSelectedImage] = useState<File | null>(null);
-	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-	const fileInputRef = useRef<HTMLInputElement>(null);
-
-	const form = useForm<z.infer<typeof schema>>({
-		resolver: zodResolver(schema),
-		defaultValues: {
+	const defaultValues = {
 			name: plugin?.name ?? "",
 			code:
 				plugin?.code ??
@@ -58,8 +50,17 @@ import { v4 as uuidv4 } from 'uuid';
 // You can show output to the user using console.log, console.error, etc.
 console.log(uuidv4());`,
 			image: undefined,
-		},
-	});
+
+	};
+	const router = useRouter();
+	const { toast } = useToast();
+	const [selectedImage, setSelectedImage] = useState<File | null>(null);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	const form = useForm<z.infer<typeof schema>>({
+		resolver: zodResolver(schema),
+		defaultValues 	});
 
 	const { data: image, isSuccess: imageLoaded } = useQuery({
 		queryKey: ["plugin-image", plugin?.id],
@@ -85,7 +86,6 @@ console.log(uuidv4());`,
 	}, [imageLoaded, image, form]);
 
 	// Reset form when dialog opens.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reset on open
 	useEffect(() => {
 		if (!isOpen) return;
 
@@ -96,7 +96,7 @@ console.log(uuidv4());`,
 			});
 			// Do not clear image state when editing an existing plugin.
 		} else {
-			form.reset();
+			form.reset(defaultValues);
 			setPreviewUrl(null);
 			setSelectedImage(null);
 		}

@@ -27,11 +27,12 @@ type PluginStore interface {
 }
 
 type PluginResponse struct {
-	Name      string `json:"name"`
-	Code      string `json:"code"`
-	OrderNum  int    `json:"order_num"`
-	Image     string `json:"image"`
-	ImageType string `json:"image_type"`
+	ID        int     `json:"id"`
+	Name      string  `json:"name"`
+	Code      string  `json:"code"`
+	OrderNum  int     `json:"order_num"`
+	Image     *string `json:"image"`
+	ImageType string  `json:"image_type"`
 }
 
 // Runner interface for plugin execution
@@ -131,10 +132,20 @@ func (h *Handlers) GetAllPlugins(c *fiber.Ctx) error {
 			base := base64.StdEncoding.EncodeToString(dbPlugins[i].Image)
 			dataUrl := fmt.Sprintf("data:%s;base64,%s", *dbPlugins[i].ImageType, base)
 			plugins = append(plugins, PluginResponse{
+				ID:        dbPlugins[i].ID,
 				Name:      dbPlugins[i].Name,
 				Code:      dbPlugins[i].Code,
 				OrderNum:  dbPlugins[i].OrderNum,
-				Image:     dataUrl,
+				Image:     &dataUrl,
+				ImageType: *dbPlugins[i].ImageType,
+			})
+		} else {
+			plugins = append(plugins, PluginResponse{
+				ID:        dbPlugins[i].ID,
+				Name:      dbPlugins[i].Name,
+				Code:      dbPlugins[i].Code,
+				OrderNum:  dbPlugins[i].OrderNum,
+				Image:     nil,
 				ImageType: *dbPlugins[i].ImageType,
 			})
 		}

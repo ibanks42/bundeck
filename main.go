@@ -21,7 +21,7 @@ import (
 //go:embed web/dist
 var website embed.FS
 
-//go:embed logo.png
+//go:embed logo.ico
 var logo []byte
 
 //go:embed logo.icns
