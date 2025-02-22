@@ -1,0 +1,10 @@
+[
+	{
+		"title": "OBS: Switch Scene",
+		"arguments": {
+			"port": "string",
+			"scene": "string"
+		},
+		"file": "switch-scene.ts"
+	}
+]
