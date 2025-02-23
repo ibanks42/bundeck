@@ -1,10 +1,25 @@
 [
 	{
-		"title": "OBS: Switch Scene",
-		"arguments": {
-			"port": "string",
-			"scene": "string"
-		},
-		"file": "switch-scene.ts"
+		"id": "obs-scene-switch",
+		"title": "OBS: Toggle Webcam",
+		"description": "Toggles webcam visibility across all OBS scenes",
+		"file": "switch-scene.ts",
+		"variables": {
+			"BUNDECK_DEVICES": {
+				"type": "string[]",
+				"default": ["~~Webcam", "~~Screen"],
+				"description": "Names of webcam sources in OBS, comma separated"
+			},
+			"BUNDECK_OBS_PASSWORD": {
+				"type": "string",
+				"default": "password",
+				"description": "OBS WebSocket password"
+			},
+			"BUNDECK_OBS_PORT": {
+				"type": "number",
+				"default": 4455,
+				"description": "OBS WebSocket port"
+			}
+		}
 	}
 ]

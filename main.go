@@ -73,6 +73,10 @@ func onReady() {
 	app.Delete("/api/plugins/:id", handlers.DeletePlugin)
 	app.Post("/api/plugins/:id/run", handlers.RunPlugin)
 
+	// Plugin template routes
+	app.Get("/api/plugins/templates", handlers.GetPluginTemplates)
+	app.Post("/api/plugins/templates/create", handlers.CreatePluginFromTemplate)
+
 	app.Get("/favicon*", func(c *fiber.Ctx) error {
 		return c.SendFile("web/dist/favicon" + c.Params("*"))
 	})
