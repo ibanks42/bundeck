@@ -8,8 +8,12 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
 	"net/textproto"
+	"os"
+	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -485,6 +489,146 @@ func TestHandlers_UpdatePluginOrder(t *testing.T) {
 
 		if resp.StatusCode != fiber.StatusBadRequest {
 			t.Errorf("Expected status %d, got %d", fiber.StatusBadRequest, resp.StatusCode)
+		}
+	})
+}
+
+func TestGetPluginTemplates(t *testing.T) {
+	// Create a temporary templates file
+	tempDir := t.TempDir()
+	templatesPath := filepath.Join(tempDir, "list.json")
+	templates := []map[string]interface{}{
+		{
+			"id":          "test-template",
+			"title":       "Test Template",
+			"description": "A test template",
+			"file":        "test.ts",
+			"variables": map[string]interface{}{
+				"TEST_VAR": map[string]interface{}{
+					"type":        "string",
+					"default":     "test",
+					"description": "A test variable",
+				},
+				"TEST_NUM": map[string]interface{}{
+					"type":        "number",
+					"default":     4455,
+					"description": "A test number",
+				},
+				"TEST_ARRAY": map[string]interface{}{
+					"type":        "string[]",
+					"default":     []string{"item1", "item2"},
+					"description": "A test array",
+				},
+			},
+		},
+	}
+	templatesData, _ := json.Marshal(templates)
+	os.WriteFile(templatesPath, templatesData, 0644)
+
+	// Create a temporary source file
+	sourceFile := filepath.Join(tempDir, "test.ts")
+	sourceContent := []byte(`const TEST_VAR = "default";
+const TEST_NUM = 1234;
+const TEST_ARRAY = ["default1", "default2"];`)
+	os.WriteFile(sourceFile, sourceContent, 0644)
+
+	// Setup test app
+	app := fiber.New()
+	store := &mockPluginStore{
+		plugins: make(map[int]*db.Plugin),
+	}
+	runner := &mockRunner{}
+	handlers := NewHandlers(store, runner)
+
+	app.Get("/api/plugins/templates", handlers.GetPluginTemplates)
+	app.Post("/api/plugins/templates/create", handlers.CreatePluginFromTemplate)
+
+	t.Run("Get templates", func(t *testing.T) {
+		req := httptest.NewRequest("GET", "/api/plugins/templates", nil)
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusOK {
+			t.Errorf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
+		}
+
+		var result []map[string]interface{}
+		body, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(body, &result); err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(templates, result) {
+			t.Errorf("expected %v, got %v", templates, result)
+		}
+	})
+
+	t.Run("Create from template with all variable types", func(t *testing.T) {
+		body := map[string]interface{}{
+			"templateId": "test-template",
+			"variables": map[string]interface{}{
+				"TEST_VAR":   "new value",
+				"TEST_NUM":   9999,
+				"TEST_ARRAY": []interface{}{"new1", "new2", "new3"},
+			},
+		}
+		bodyData, _ := json.Marshal(body)
+
+		req := httptest.NewRequest("POST", "/api/plugins/templates/create", bytes.NewReader(bodyData))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusCreated {
+			t.Errorf("expected status %d, got %d", http.StatusCreated, resp.StatusCode)
+		}
+
+		var result map[string]interface{}
+		respBody, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			t.Fatal(err)
+		}
+
+		code := result["code"].(string)
+		expectedValues := []string{
+			`const TEST_VAR = "new value"`,
+			`const TEST_NUM = 9999`,
+			`const TEST_ARRAY = ["new1", "new2", "new3"]`,
+		}
+		for _, expected := range expectedValues {
+			if !strings.Contains(code, expected) {
+				t.Errorf("expected code to contain %q", expected)
+			}
+		}
+	})
+
+	t.Run("Create from template with invalid variable", func(t *testing.T) {
+		body := map[string]interface{}{
+			"templateId": "test-template",
+			"variables": map[string]interface{}{
+				"NONEXISTENT_VAR": "value",
+			},
+		}
+		bodyData, _ := json.Marshal(body)
+
+		req := httptest.NewRequest("POST", "/api/plugins/templates/create", bytes.NewReader(bodyData))
+		req.Header.Set("Content-Type", "application/json")
+		resp, err := app.Test(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if resp.StatusCode != http.StatusBadRequest {
+			t.Errorf("expected status %d, got %d", http.StatusBadRequest, resp.StatusCode)
+		}
+
+		var result map[string]interface{}
+		respBody, _ := io.ReadAll(resp.Body)
+		if err := json.Unmarshal(respBody, &result); err != nil {
+			t.Fatal(err)
+		}
+		if !strings.Contains(result["error"].(string), "NONEXISTENT_VAR") {
+			t.Errorf("expected error message to mention the invalid variable")
 		}
 	})
 }

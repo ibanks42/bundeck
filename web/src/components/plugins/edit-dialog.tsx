@@ -41,16 +41,15 @@ export function EditPluginDialog({
 	onSave,
 }: EditPluginDialogProps) {
 	const defaultValues = {
-			name: plugin?.name ?? "",
-			code:
-				plugin?.code ??
-				`// Example plugin using Bun
+		name: plugin?.name ?? "",
+		code:
+			plugin?.code ??
+			`// Example plugin using Bun
 import { v4 as uuidv4 } from 'uuid';
 
 // You can show output to the user using console.log, console.error, etc.
 console.log(uuidv4());`,
-			image: undefined,
-
+		image: undefined,
 	};
 	const router = useRouter();
 	const { toast } = useToast();
@@ -60,7 +59,8 @@ console.log(uuidv4());`,
 
 	const form = useForm<z.infer<typeof schema>>({
 		resolver: zodResolver(schema),
-		defaultValues 	});
+		defaultValues,
+	});
 
 	const { data: image, isSuccess: imageLoaded } = useQuery({
 		queryKey: ["plugin-image", plugin?.id],
@@ -86,6 +86,7 @@ console.log(uuidv4());`,
 	}, [imageLoaded, image, form]);
 
 	// Reset form when dialog opens.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: This is intentional
 	useEffect(() => {
 		if (!isOpen) return;
 
