@@ -27,3 +27,5 @@ go.work
 /tmp
 
 .air.toml
+
+/.cursor

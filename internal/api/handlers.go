@@ -3,12 +3,13 @@ package api
 import (
 	"bundeck/internal/db"
 	"database/sql"
+	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -16,6 +17,9 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 )
+
+//go:embed plugins
+var plugins embed.FS
 
 // PluginStore interface for database operations
 type PluginStore interface {
@@ -344,7 +348,7 @@ func (h *Handlers) RunPlugin(c *fiber.Ctx) error {
 func (h *Handlers) GetPluginTemplates(c *fiber.Ctx) error {
 	// Read templates from plugins/list.json
 	templatesPath := "plugins/list.json"
-	data, err := os.ReadFile(templatesPath)
+	data, err := plugins.ReadFile(templatesPath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to read plugin templates",
@@ -377,7 +381,7 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 
 	// Read templates
 	templatesPath := "plugins/list.json"
-	data, err := os.ReadFile(templatesPath)
+	data, err := plugins.ReadFile(templatesPath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to read plugin templates",
@@ -407,7 +411,7 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 
 	// Read the template source file
 	sourcePath := filepath.Join("plugins", template["file"].(string))
-	sourceContent, err := os.ReadFile(sourcePath)
+	sourceContent, err := plugins.ReadFile(sourcePath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to read template source",
@@ -416,6 +420,7 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 
 	// Replace variables in the source content
 	content := string(sourceContent)
+	log.Println(content)
 	for key, value := range body.Variables {
 		var stringValue string
 		switch v := value.(type) {
@@ -453,7 +458,7 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 	plugin := &db.Plugin{
 		Name:     template["title"].(string),
 		Code:     content,
-		OrderNum: 0, // Will be last in order
+		OrderNum: -1, // Will be last in order
 	}
 
 	if err := h.store.Create(plugin); err != nil {
