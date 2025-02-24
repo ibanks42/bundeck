@@ -21,18 +21,27 @@ func initTray(settings *settings.Settings) {
 		systray.SetIcon(logo)
 		systray.SetTitle("BunDeck")
 	}
+
+	browser := systray.AddMenuItem("Open App", "Open App")
 	qr := systray.AddMenuItem("Show QR Code", "Show QR Code")
 	quit := systray.AddMenuItem("Exit", "Exit")
+
 	go func() {
 		<-quit.ClickedCh
 		systray.Quit()
 	}()
+
 	go func() {
 		<-qr.ClickedCh
 		ip := GetOutboundIP().To4().String()
 		qrUrl := fmt.Sprintf("http://%s:%d", ip, settings.Port)
 		fullUrl := fmt.Sprintf("http://localhost:%d/qr/%s", settings.Port, url.PathEscape(qrUrl))
 		openURL(fullUrl)
+	}()
+
+	go func() {
+		<-browser.ClickedCh
+		openURL(fmt.Sprintf("http://localhost:%d", settings.Port))
 	}()
 }
 
