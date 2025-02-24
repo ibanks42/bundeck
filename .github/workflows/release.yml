@@ -3,7 +3,7 @@ name: Release Build
 on:
   push:
     tags:
-      - 'v*.*.*'
+      - "v*.*.*"
 
 jobs:
   build:
@@ -14,7 +14,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: '1.24'
+          go-version: "1.24"
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -27,18 +27,21 @@ jobs:
           bun install
           bun run build
           cd ..
+      - name: Install Ubuntu dependencies
+        run: |
+          sudo apt install -y gcc pkg-config libwayland-dev libx11-dev libx11-xcb-dev libxkbcommon-x11-dev libgles2-mesa-dev libegl1-mesa-dev libffi-dev libxcursor-dev libvulkan-dev
 
       - name: Build Linux (amd64)
         run: |
-          GOOS=linux GOARCH=amd64 CGO_ENABLED=1 go build -ldflags "-s -w" -o bundeck-linux-amd64 .
+          GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-amd64 .
 
       - name: Build Linux (arm64)
         run: |
-          GOOS=linux GOARCH=arm64 CGO_ENABLED=1 go build -ldflags "-s -w" -o bundeck-linux-arm64 .
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-arm64 .
 
       - name: Build Windows (amd64)
         run: |
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=1 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-amd64.exe .
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-amd64.exe .
 
       - name: Build MacOS (amd64/arm64)
         uses: crazy-max/ghaction-xgo@v3
@@ -71,4 +74,3 @@ jobs:
             bundeck-mac-apple
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
