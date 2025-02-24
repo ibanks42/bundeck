@@ -1,0 +1,44 @@
+[
+	{
+		"id": "obs-scene-switch",
+		"title": "OBS: Toggle Webcam",
+		"description": "Toggles webcam visibility across all OBS scenes",
+		"file": "switch-scene.ts",
+		"variables": {
+			"BUNDECK_DEVICES": {
+				"type": "string[]",
+				"default": [
+					"~~Webcam",
+					"~~Screen"
+				],
+				"description": "Names of webcam sources in OBS, comma separated"
+			},
+			"BUNDECK_OBS_PASSWORD": {
+				"type": "string",
+				"default": "password",
+				"description": "OBS WebSocket password"
+			},
+			"BUNDECK_OBS_PORT": {
+				"type": "number",
+				"default": 4455,
+				"description": "OBS WebSocket port"
+			}
+		}
+	},
+	{
+		"id": "send-keystrokes",
+		"title": "Send Keybind",
+		"description": "Sens a keystroke to the operating system. Useful for toggling mute on Discord or similar tasks.",
+		"file": "keystroke.ts",
+		"variables": {
+			"BUNDECK_KEYS": {
+				"type": "string[]",
+				"default": [
+					"104",
+					"94"
+				],
+				"description": "Comma separated number keycodes. You can view a list of keycodes at: https://cdn.jsdelivr.net/npm/@nut-tree-fork/shared@latest/dist/lib/enums/key.enum.d.ts)"
+			}
+		}
+	}
+]

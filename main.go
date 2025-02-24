@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"runtime"
 	"strconv"
 
 	"fyne.io/systray"
@@ -30,12 +31,22 @@ var macLogo []byte
 var dbPath = "./plugins.db"
 
 func onReady() {
-	systray.SetIcon(logo)
+	if runtime.GOOS == "darwin" {
+		systray.SetIcon(macLogo)
+	} else {
+		systray.SetIcon(logo)
+	}
 	systray.SetTitle("BunDeck")
+	qr := systray.AddMenuItem("Show QR Code", "Show QR Code")
 	quit := systray.AddMenuItem("Exit", "Exit")
 	go func() {
 		<-quit.ClickedCh
 		systray.Quit()
+	}()
+	go func() {
+		for range qr.ClickedCh {
+			showQRCodeDialog()
+		}
 	}()
 
 	settings := settings.LoadSettings()
@@ -92,7 +103,7 @@ func onReady() {
 	})
 
 	// Start server
-	log.Fatal(app.Listen(":" + strconv.Itoa(settings.Port)))
+	log.Fatal(app.Listen("0.0.0.0:" + strconv.Itoa(settings.Port)))
 }
 
 func onExit() {
