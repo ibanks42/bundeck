@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"runtime"
 	"strconv"
 
 	"fyne.io/systray"
@@ -31,25 +30,9 @@ var macLogo []byte
 var dbPath = "./plugins.db"
 
 func onReady() {
-	if runtime.GOOS == "darwin" {
-		systray.SetIcon(macLogo)
-	} else {
-		systray.SetIcon(logo)
-	}
-	systray.SetTitle("BunDeck")
-	qr := systray.AddMenuItem("Show QR Code", "Show QR Code")
-	quit := systray.AddMenuItem("Exit", "Exit")
-	go func() {
-		<-quit.ClickedCh
-		systray.Quit()
-	}()
-	go func() {
-		for range qr.ClickedCh {
-			showQRCodeDialog()
-		}
-	}()
-
 	settings := settings.LoadSettings()
+
+	initTray(settings)
 
 	pragmas := "?_pragma=busy_timeout(10000)&_pragma=journal_mode(WAL)&_pragma=journal_size_limit(200000000)&_pragma=synchronous(NORMAL)&_pragma=foreign_keys(ON)&_pragma=temp_store(MEMORY)&_pragma=cache_size(-16000)"
 	// Initialize SQLite database

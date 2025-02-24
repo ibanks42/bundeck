@@ -12,12 +12,19 @@
 
 import { Route as rootRoute } from './routes/__root'
 import { Route as IndexImport } from './routes/index'
+import { Route as QrCodeImport } from './routes/qr.$code'
 
 // Create/Update Routes
 
 const IndexRoute = IndexImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRoute,
+} as any)
+
+const QrCodeRoute = QrCodeImport.update({
+  id: '/qr/$code',
+  path: '/qr/$code',
   getParentRoute: () => rootRoute,
 } as any)
 
@@ -32,6 +39,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexImport
       parentRoute: typeof rootRoute
     }
+    '/qr/$code': {
+      id: '/qr/$code'
+      path: '/qr/$code'
+      fullPath: '/qr/$code'
+      preLoaderRoute: typeof QrCodeImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -39,32 +53,37 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/qr/$code': typeof QrCodeRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/qr/$code': typeof QrCodeRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
+  '/qr/$code': typeof QrCodeRoute
 }
 
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/qr/$code'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/qr/$code'
+  id: '__root__' | '/' | '/qr/$code'
   fileRoutesById: FileRoutesById
 }
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  QrCodeRoute: typeof QrCodeRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  QrCodeRoute: QrCodeRoute,
 }
 
 export const routeTree = rootRoute
@@ -77,11 +96,15 @@ export const routeTree = rootRoute
     "__root__": {
       "filePath": "__root.tsx",
       "children": [
-        "/"
+        "/",
+        "/qr/$code"
       ]
     },
     "/": {
       "filePath": "index.tsx"
+    },
+    "/qr/$code": {
+      "filePath": "qr.$code.tsx"
     }
   }
 }
