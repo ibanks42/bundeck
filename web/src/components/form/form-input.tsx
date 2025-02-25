@@ -1,5 +1,3 @@
-import parse from 'html-react-parser';
-import type { Control, FieldValues, Path } from 'react-hook-form';
 import {
   FormControl,
   FormDescription,
@@ -9,6 +7,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input, type InputProps } from '@/components/ui/input';
+import parse from 'html-react-parser';
+import type { Control, FieldValues, Path } from 'react-hook-form';
 
 interface FormInputProps<T extends FieldValues> extends InputProps {
   control: Control<T>;
