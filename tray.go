@@ -17,8 +17,11 @@ import (
 func initTray(settings *settings.Settings) {
 	if runtime.GOOS == "darwin" {
 		systray.SetIcon(macLogo)
+	} else if runtime.GOOS == "linux" {
+		systray.SetIcon(linuxLogo)
+		systray.SetTitle("BunDeck")
 	} else {
-		systray.SetIcon(logo)
+		systray.SetIcon(winLogo)
 		systray.SetTitle("BunDeck")
 	}
 

@@ -423,16 +423,70 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 	log.Println(content)
 	for key, value := range body.Variables {
 		var stringValue string
+
+		// Handle different variable types
 		switch v := value.(type) {
 		case []interface{}:
-			items := make([]string, len(v))
-			for i, item := range v {
-				items[i] = fmt.Sprintf("%q", item)
+			// Handle various array types
+			if len(v) > 0 {
+				items := make([]string, len(v))
+
+				// Determine the type of array based on the first element
+				switch v[0].(type) {
+				case bool:
+					// Boolean array
+					for i, item := range v {
+						boolVal, ok := item.(bool)
+						if !ok {
+							return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+								"error": fmt.Sprintf("Invalid boolean value in array for variable %s", key),
+							})
+						}
+						items[i] = fmt.Sprintf("%v", boolVal)
+					}
+					stringValue = fmt.Sprintf("[%s]", strings.Join(items, ", "))
+				case float64:
+					// Number array (JSON numbers come as float64)
+					for i, item := range v {
+						numVal, ok := item.(float64)
+						if !ok {
+							return c.Status(http.StatusBadRequest).JSON(fiber.Map{
+								"error": fmt.Sprintf("Invalid number value in array for variable %s", key),
+							})
+						}
+
+						// Use integer format if it's a whole number
+						if numVal == float64(int(numVal)) {
+							items[i] = fmt.Sprintf("%d", int(numVal))
+						} else {
+							items[i] = fmt.Sprintf("%g", numVal)
+						}
+					}
+					stringValue = fmt.Sprintf("[%s]", strings.Join(items, ", "))
+				default:
+					// String array (or mixed, default to strings)
+					for i, item := range v {
+						strVal, ok := item.(string)
+						if !ok {
+							// Convert to string if it's not already
+							strVal = fmt.Sprintf("%v", item)
+						}
+						items[i] = fmt.Sprintf("%q", strVal)
+					}
+					stringValue = fmt.Sprintf("[%s]", strings.Join(items, ", "))
+				}
+			} else {
+				// Empty array
+				stringValue = "[]"
 			}
-			stringValue = fmt.Sprintf("[%s]", strings.Join(items, ", "))
+		case bool:
+			// Boolean value
+			stringValue = fmt.Sprintf("%v", v)
 		case string:
+			// String value
 			stringValue = fmt.Sprintf("%q", v)
-		case float64: // JSON numbers are decoded as float64
+		case float64:
+			// Number value (JSON numbers are decoded as float64)
 			if float64(int(v)) == v {
 				// If it's a whole number, format as integer
 				stringValue = fmt.Sprintf("%d", int(v))
@@ -440,6 +494,7 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 				stringValue = fmt.Sprintf("%g", v)
 			}
 		default:
+			// Other types
 			stringValue = fmt.Sprintf("%v", v)
 		}
 

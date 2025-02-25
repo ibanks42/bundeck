@@ -1,13 +1,13 @@
 {
-  "name": "plugins",
-  "module": "index.ts",
-  "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest",
-    "typescript": "^5.0.0"
-  },
-  "dependencies": {
-    "@nut-tree-fork/nut-js": "^4.2.4",
-    "obs-websocket-bun": "^5.0.61"
-  }
+	"name": "plugins",
+	"module": "index.ts",
+	"type": "module",
+	"devDependencies": {
+		"@types/bun": "latest",
+		"typescript": "^5.0.0"
+	},
+	"dependencies": {
+		"@nut-tree-fork/nut-js": "^4.2.4",
+		"obs-websocket-bun": "^5.0.61"
+	}
 }

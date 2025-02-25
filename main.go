@@ -22,7 +22,10 @@ import (
 var website embed.FS
 
 //go:embed logo.ico
-var logo []byte
+var winLogo []byte
+
+//go:embed logo.png
+var linuxLogo []byte
 
 //go:embed logo.icns
 var macLogo []byte

@@ -4,6 +4,7 @@ const obs = new OBSWebSocket();
 const BUNDECK_DEVICES = ["~~Webcam", "~~WebcamCS"];
 const BUNDECK_OBS_PASSWORD = "password";
 const BUNDECK_OBS_PORT = 4455;
+const BUNDECK_ENABLE_LOGGING = false;
 
 async function toggleWebcam() {
   try {
