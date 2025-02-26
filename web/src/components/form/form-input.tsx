@@ -6,15 +6,17 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Input, type InputProps } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import parse from 'html-react-parser';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 
-interface FormInputProps<T extends FieldValues> extends InputProps {
+interface FormInputProps<T extends FieldValues>
+  extends React.ComponentProps<'input'> {
   control: Control<T>;
   name: Path<T>;
   label: string;
   description?: string;
+  type?: string;
 }
 
 export function FormInput<T extends FieldValues>({

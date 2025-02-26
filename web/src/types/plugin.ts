@@ -7,4 +7,6 @@ export interface Plugin {
   order_num: number;
   created_at: string;
   updated_at: string;
+  run_continuously: boolean;
+  interval_seconds: number;
 }

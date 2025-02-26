@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -18,7 +19,14 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { FormEditor } from '../form/form-editor';
 import { FormInput } from '../form/form-input';
-import { Form, FormLabel } from '../ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '../ui/form';
 import { Input } from '../ui/input';
 
 interface EditPluginDialogProps {
@@ -32,6 +40,8 @@ const schema = z.object({
   name: z.string().min(1),
   code: z.string().min(1),
   image: z.instanceof(File).optional(),
+  run_continuously: z.boolean().default(false),
+  interval_seconds: z.coerce.number().min(0).default(0),
 });
 
 export function EditPluginDialog({
@@ -50,6 +60,8 @@ import { v4 as uuidv4 } from 'uuid';
 // You can show output to the user using console.log, console.error, etc.
 console.log(uuidv4());`,
     image: undefined,
+    run_continuously: plugin?.run_continuously ?? false,
+    interval_seconds: plugin?.interval_seconds ?? 0,
   };
   const router = useRouter();
   const { toast } = useToast();
@@ -61,6 +73,7 @@ console.log(uuidv4());`,
     resolver: zodResolver(schema),
     defaultValues,
   });
+  const run_continuously = form.watch('run_continuously');
 
   const { data: image, isSuccess: imageLoaded } = useQuery({
     queryKey: ['plugin-image', plugin?.id],
@@ -93,10 +106,22 @@ console.log(uuidv4());`,
       form.reset({
         name: plugin.name,
         code: plugin.code,
+        run_continuously: plugin.run_continuously,
+        interval_seconds: plugin.interval_seconds,
       });
       // Do not clear image state when editing an existing plugin.
     } else {
-      form.reset(defaultValues);
+      form.reset({
+        name: '',
+        code: `// Example plugin using Bun
+import { v4 as uuidv4 } from 'uuid';
+
+// You can show output to the user using console.log, console.error, etc.
+console.log(uuidv4());`,
+        image: undefined,
+        run_continuously: false,
+        interval_seconds: 0,
+      });
       setPreviewUrl(null);
       setSelectedImage(null);
     }
@@ -105,7 +130,7 @@ console.log(uuidv4());`,
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [plugin, isOpen]);
+  }, [plugin, isOpen, form]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -151,6 +176,9 @@ console.log(uuidv4());`,
       const formData = new FormData();
       formData.append('name', values.name);
       formData.append('code', values.code);
+      formData.append('run_continuously', values.run_continuously.toString());
+      formData.append('interval_seconds', values.interval_seconds.toString());
+
       if (selectedImage) {
         formData.append('image', selectedImage);
       }
@@ -270,6 +298,52 @@ console.log(uuidv4());`,
                   </div>
                 </div>
               </div>
+
+              {/* Add continuous run settings */}
+              <div className='grid grid-cols-2 gap-4'>
+                <FormField
+                  control={form.control}
+                  name='run_continuously'
+                  render={({ field }) => (
+                    <FormItem className='flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4'>
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className='space-y-1 leading-none'>
+                        <FormLabel>Run Continuously</FormLabel>
+                        <FormDescription>
+                          Run this plugin at regular intervals
+                        </FormDescription>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name='interval_seconds'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Interval (seconds)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type='number'
+                          min={0}
+                          {...field}
+                          onChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        How often to run the plugin (in seconds)
+                      </FormDescription>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <div className='h-[400px]'>
                 <FormEditor
                   control={form.control}

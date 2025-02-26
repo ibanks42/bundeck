@@ -1,46 +1,67 @@
-[
-	{
-		"id": "obs-scene-switch",
-		"title": "OBS: Toggle Webcam",
-		"description": "Toggles webcam visibility across all OBS scenes",
-		"file": "obs-toggle-scene.ts",
-		"category": "OBS",
-		"label": "OBS",
-		"variables": {
-			"BUNDECK_DEVICES": {
-				"type": "string[]",
-				"default": ["Webcam"],
-				"description": "Names of webcam sources in OBS",
-				"label": "Source Devices"
-			},
-			"BUNDECK_OBS_PASSWORD": {
-				"type": "string",
-				"default": "password",
-				"description": "OBS WebSocket password",
-				"label": "WebSocket Password"
-			},
-			"BUNDECK_OBS_PORT": {
-				"type": "number",
-				"default": 4455,
-				"description": "OBS WebSocket port",
-				"label": "WebSocket Port"
+{
+	"OBS": {
+		"plugins": [
+			{
+				"id": "obs-scene-switch",
+				"title": "OBS: Toggle Webcam",
+				"description": "Toggles webcam visibility across all OBS scenes",
+				"file": "obs-toggle-scene.ts",
+				"category": "OBS",
+				"label": "Toggle",
+				"variables": {
+					"BUNDECK_DEVICES": {
+						"type": "string[]",
+						"default": ["Webcam"],
+						"description": "Names of webcam sources in OBS",
+						"label": "Source Devices"
+					},
+					"BUNDECK_OBS_PASSWORD": {
+						"type": "string",
+						"default": "password",
+						"description": "OBS WebSocket password",
+						"label": "WebSocket Password"
+					},
+					"BUNDECK_OBS_PORT": {
+						"type": "number",
+						"default": 4455,
+						"description": "OBS WebSocket port",
+						"label": "WebSocket Port"
+					}
+				}
 			}
-		}
+		]
 	},
-	{
-		"id": "send-keystrokes",
-		"title": "Send Keybind",
-		"description": "Sends a keystroke to the operating system.<br />Useful for toggling mute on Discord or similar tasks.",
-		"file": "keystroke.ts",
-		"category": "Operating System",
-		"label": "Keyboard",
-		"variables": {
-			"BUNDECK_KEYS": {
-				"type": "number[]",
-				"default": [104, 94],
-				"description": "Keycodes to send. You can view a list of keycodes <a href='https://cdn.jsdelivr.net/npm/@nut-tree-fork/shared@latest/dist/lib/enums/key.enum.d.ts' target='_blank' className='font-medium text-primary underline underline-offset-4'>here</a>.",
-				"label": "Key Codes"
+	"Input": {
+		"plugins": [
+			{
+				"id": "send-keystrokes",
+				"title": "Send Keybind",
+				"description": "Sends a keystroke to the operating system.<br />Useful for toggling mute on Discord or similar tasks.",
+				"file": "keystroke.ts",
+				"category": "Input",
+				"label": "Keyboard",
+				"variables": {
+					"BUNDECK_KEYS": {
+						"type": "number[]",
+						"default": [104, 94],
+						"description": "Keycodes to send. You can view a list of keycodes <a href='https://cdn.jsdelivr.net/npm/@nut-tree-fork/shared@latest/dist/lib/enums/key.enum.d.ts' target='_blank' className='font-medium text-primary underline underline-offset-4'>here</a>.",
+						"label": "Key Codes"
+					}
+				}
 			}
-		}
+		]
+	},
+	"Operating System": {
+		"plugins": [
+			{
+				"id": "cpu-usage",
+				"title": "CPU Usage",
+				"description": "Logs the current CPU usage to the console.",
+				"file": "cpu-usage.ts",
+				"category": "Operating System",
+				"label": "CPU",
+				"variables": {}
+			}
+		]
 	}
-]
+}

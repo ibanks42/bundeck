@@ -26,6 +26,9 @@ var migrations = []string{
 		created_at DATETIME NOT NULL,
 		updated_at DATETIME NOT NULL
 	);`,
+	// v2/3: Add continuous running support
+	`ALTER TABLE plugins ADD COLUMN run_continuously BOOLEAN NOT NULL DEFAULT 0;`,
+	`ALTER TABLE plugins ADD COLUMN interval_seconds INTEGER NOT NULL DEFAULT 0;`,
 }
 
 func getCurrentVersion(db *sql.DB) (int, error) {
@@ -86,7 +89,7 @@ func InitDB(db *sql.DB) error {
 	// Do periodic WAL checkpoints
 	checkpoint(db)
 	go func() {
-		ticker := time.NewTicker(5 * time.Second)
+		ticker := time.NewTicker(5 * time.Minute)
 		defer ticker.Stop()
 		for range ticker.C {
 			checkpoint(db)
@@ -104,14 +107,16 @@ func checkpoint(db *sql.DB) {
 }
 
 type Plugin struct {
-	ID        int       `json:"id"`
-	Name      string    `json:"name"`
-	Code      string    `json:"code"`
-	OrderNum  int       `json:"order_num"`
-	Image     []byte    `json:"image"`
-	ImageType *string   `json:"image_type"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	Code            string    `json:"code"`
+	OrderNum        int       `json:"order_num"`
+	Image           []byte    `json:"image"`
+	ImageType       *string   `json:"image_type"`
+	RunContinuously bool      `json:"run_continuously"`
+	IntervalSeconds int       `json:"interval_seconds"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type PluginStore struct {
@@ -128,12 +133,14 @@ func (s *PluginStore) Create(plugin *Plugin) error {
 	plugin.UpdatedAt = now
 
 	result, err := s.db.Exec(
-		"INSERT INTO plugins (name, code, order_num, image, image_type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+		"INSERT INTO plugins (name, code, order_num, image, image_type, run_continuously, interval_seconds, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
 		plugin.Name,
 		plugin.Code,
 		plugin.OrderNum,
 		plugin.Image,
 		plugin.ImageType,
+		plugin.RunContinuously,
+		plugin.IntervalSeconds,
 		plugin.CreatedAt,
 		plugin.UpdatedAt,
 	)
@@ -151,7 +158,7 @@ func (s *PluginStore) Create(plugin *Plugin) error {
 }
 
 func (s *PluginStore) GetAll() ([]Plugin, error) {
-	rows, err := s.db.Query("SELECT id, name, code, order_num, image, image_type, created_at, updated_at FROM plugins ORDER BY order_num")
+	rows, err := s.db.Query("SELECT id, name, code, order_num, image, image_type, run_continuously, interval_seconds, created_at, updated_at FROM plugins ORDER BY order_num")
 	if err != nil {
 		return nil, err
 	}
@@ -161,7 +168,7 @@ func (s *PluginStore) GetAll() ([]Plugin, error) {
 	for rows.Next() {
 		var p Plugin
 		var imageType sql.NullString // Use sql.NullString for nullable column
-		err := rows.Scan(&p.ID, &p.Name, &p.Code, &p.OrderNum, &p.Image, &imageType, &p.CreatedAt, &p.UpdatedAt)
+		err := rows.Scan(&p.ID, &p.Name, &p.Code, &p.OrderNum, &p.Image, &imageType, &p.RunContinuously, &p.IntervalSeconds, &p.CreatedAt, &p.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -178,9 +185,9 @@ func (s *PluginStore) GetByID(id int) (*Plugin, error) {
 	var p Plugin
 	var imageType sql.NullString // Use sql.NullString for nullable column
 	err := s.db.QueryRow(
-		"SELECT id, name, code, order_num, image, image_type, created_at, updated_at FROM plugins WHERE id = ?",
+		"SELECT id, name, code, order_num, image, image_type, run_continuously, interval_seconds, created_at, updated_at FROM plugins WHERE id = ?",
 		id,
-	).Scan(&p.ID, &p.Name, &p.Code, &p.OrderNum, &p.Image, &imageType, &p.CreatedAt, &p.UpdatedAt)
+	).Scan(&p.ID, &p.Name, &p.Code, &p.OrderNum, &p.Image, &imageType, &p.RunContinuously, &p.IntervalSeconds, &p.CreatedAt, &p.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +197,15 @@ func (s *PluginStore) GetByID(id int) (*Plugin, error) {
 	return &p, nil
 }
 
-func (s *PluginStore) UpdateCode(id int, code string, image []byte, imageType string, name string) error {
+func (s *PluginStore) UpdateCode(id int, code string, image []byte, imageType string, name string, runContinuously bool, intervalSeconds int) error {
 	result, err := s.db.Exec(
-		"UPDATE plugins SET code = ?, image = ?, image_type = ?, name = ?, updated_at = ? WHERE id = ?",
+		"UPDATE plugins SET code = ?, image = ?, image_type = ?, name = ?, run_continuously = ?, interval_seconds = ?, updated_at = ? WHERE id = ?",
 		code,
 		image,
 		imageType,
 		name,
+		runContinuously,
+		intervalSeconds,
 		time.Now(),
 		id,
 	)

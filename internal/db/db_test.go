@@ -102,7 +102,7 @@ func TestPluginStore_CRUD(t *testing.T) {
 	t.Run("UpdateCode", func(t *testing.T) {
 		newCode := "console.log('updated')"
 		newName := "Updated Plugin"
-		err := store.UpdateCode(1, newCode, nil, "", newName)
+		err := store.UpdateCode(1, newCode, nil, "", newName, false, 0)
 		if err != nil {
 			t.Fatalf("Failed to update plugin code: %v", err)
 		}
@@ -205,7 +205,7 @@ func TestPluginStore_ImageHandling(t *testing.T) {
 		newImageType := "image/jpeg"
 		newImage := []byte("new image data")
 
-		err := store.UpdateCode(1, "new code", newImage, newImageType, "Updated Name")
+		err := store.UpdateCode(1, "new code", newImage, newImageType, "Updated Name", false, 0)
 		if err != nil {
 			t.Fatalf("Failed to update plugin with image: %v", err)
 		}

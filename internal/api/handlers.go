@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"path/filepath"
 	"regexp"
@@ -26,7 +25,7 @@ type PluginStore interface {
 	Create(plugin *db.Plugin) error
 	GetAll() ([]db.Plugin, error)
 	GetByID(id int) (*db.Plugin, error)
-	UpdateCode(id int, code string, image []byte, imageType string, name string) error
+	UpdateCode(id int, code string, image []byte, imageType string, name string, runContinuously bool, intervalSeconds int) error
 	UpdateOrder(orders []struct {
 		ID       int `json:"id"`
 		OrderNum int `json:"order_num"`
@@ -35,12 +34,14 @@ type PluginStore interface {
 }
 
 type PluginResponse struct {
-	ID        int     `json:"id"`
-	Name      string  `json:"name"`
-	Code      string  `json:"code"`
-	OrderNum  int     `json:"order_num"`
-	Image     *string `json:"image"`
-	ImageType *string `json:"image_type"`
+	ID              int     `json:"id"`
+	Name            string  `json:"name"`
+	Code            string  `json:"code"`
+	OrderNum        int     `json:"order_num"`
+	Image           *string `json:"image"`
+	ImageType       *string `json:"image_type"`
+	RunContinuously bool    `json:"run_continuously"`
+	IntervalSeconds int     `json:"interval_seconds"`
 }
 
 // Runner interface for plugin execution
@@ -73,6 +74,17 @@ func (h *Handlers) CreatePlugin(c *fiber.Ctx) error {
 	name := form.Value["name"][0]
 	code := form.Value["code"][0]
 	orderNum, _ := strconv.Atoi(form.Value["order_num"][0])
+
+	// Get run continuously and interval fields
+	runContinuously := false
+	if len(form.Value["run_continuously"]) > 0 {
+		runContinuously, _ = strconv.ParseBool(form.Value["run_continuously"][0])
+	}
+
+	intervalSeconds := 0
+	if len(form.Value["interval_seconds"]) > 0 {
+		intervalSeconds, _ = strconv.Atoi(form.Value["interval_seconds"][0])
+	}
 
 	var imageData []byte
 	var imageType string
@@ -109,11 +121,13 @@ func (h *Handlers) CreatePlugin(c *fiber.Ctx) error {
 	}
 
 	plugin := &db.Plugin{
-		Name:      name,
-		Code:      code,
-		OrderNum:  orderNum,
-		Image:     imageData,
-		ImageType: &imageType,
+		Name:            name,
+		Code:            code,
+		OrderNum:        orderNum,
+		Image:           imageData,
+		ImageType:       &imageType,
+		RunContinuously: runContinuously,
+		IntervalSeconds: intervalSeconds,
 	}
 
 	if err := h.store.Create(plugin); err != nil {
@@ -140,21 +154,25 @@ func (h *Handlers) GetAllPlugins(c *fiber.Ctx) error {
 			base := base64.StdEncoding.EncodeToString(dbPlugins[i].Image)
 			dataUrl := fmt.Sprintf("data:%s;base64,%s", *dbPlugins[i].ImageType, base)
 			plugins = append(plugins, PluginResponse{
-				ID:        dbPlugins[i].ID,
-				Name:      dbPlugins[i].Name,
-				Code:      dbPlugins[i].Code,
-				OrderNum:  dbPlugins[i].OrderNum,
-				Image:     &dataUrl,
-				ImageType: dbPlugins[i].ImageType,
+				ID:              dbPlugins[i].ID,
+				Name:            dbPlugins[i].Name,
+				Code:            dbPlugins[i].Code,
+				OrderNum:        dbPlugins[i].OrderNum,
+				Image:           &dataUrl,
+				ImageType:       dbPlugins[i].ImageType,
+				RunContinuously: dbPlugins[i].RunContinuously,
+				IntervalSeconds: dbPlugins[i].IntervalSeconds,
 			})
 		} else {
 			plugins = append(plugins, PluginResponse{
-				ID:        dbPlugins[i].ID,
-				Name:      dbPlugins[i].Name,
-				Code:      dbPlugins[i].Code,
-				OrderNum:  dbPlugins[i].OrderNum,
-				Image:     nil,
-				ImageType: nil,
+				ID:              dbPlugins[i].ID,
+				Name:            dbPlugins[i].Name,
+				Code:            dbPlugins[i].Code,
+				OrderNum:        dbPlugins[i].OrderNum,
+				Image:           nil,
+				ImageType:       nil,
+				RunContinuously: dbPlugins[i].RunContinuously,
+				IntervalSeconds: dbPlugins[i].IntervalSeconds,
 			})
 		}
 	}
@@ -217,6 +235,17 @@ func (h *Handlers) UpdatePluginData(c *fiber.Ctx) error {
 	code := form.Value["code"][0]
 	name := form.Value["name"][0]
 
+	// Get run continuously and interval fields
+	runContinuously := false
+	if len(form.Value["run_continuously"]) > 0 {
+		runContinuously, _ = strconv.ParseBool(form.Value["run_continuously"][0])
+	}
+
+	intervalSeconds := 0
+	if len(form.Value["interval_seconds"]) > 0 {
+		intervalSeconds, _ = strconv.Atoi(form.Value["interval_seconds"][0])
+	}
+
 	var imageData []byte
 	var imageType string
 
@@ -251,7 +280,7 @@ func (h *Handlers) UpdatePluginData(c *fiber.Ctx) error {
 		imageType = file.Header.Get("Content-Type")
 	}
 
-	if err := h.store.UpdateCode(id, code, imageData, imageType, name); err != nil {
+	if err := h.store.UpdateCode(id, code, imageData, imageType, name, runContinuously, intervalSeconds); err != nil {
 		if err == sql.ErrNoRows {
 			return c.Status(http.StatusNotFound).JSON(fiber.Map{
 				"error": "Plugin not found",
@@ -355,12 +384,24 @@ func (h *Handlers) GetPluginTemplates(c *fiber.Ctx) error {
 		})
 	}
 
-	// Parse templates
-	var templates []map[string]interface{}
-	if err := json.Unmarshal(data, &templates); err != nil {
+	// Parse templates - now structured by category
+	var categorizedTemplates map[string]map[string]interface{}
+	if err := json.Unmarshal(data, &categorizedTemplates); err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse plugin templates",
 		})
+	}
+
+	// Convert to flat array as expected by frontend
+	templates := []map[string]interface{}{}
+	for _, categoryData := range categorizedTemplates {
+		if plugins, ok := categoryData["plugins"].([]interface{}); ok {
+			for _, plugin := range plugins {
+				if pluginMap, ok := plugin.(map[string]interface{}); ok {
+					templates = append(templates, pluginMap)
+				}
+			}
+		}
 	}
 
 	return c.JSON(templates)
@@ -388,29 +429,43 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 		})
 	}
 
-	var templates []map[string]interface{}
-	if err := json.Unmarshal(data, &templates); err != nil {
+	// Parse templates - now structured by category
+	var categorizedTemplates map[string]map[string]interface{}
+	if err := json.Unmarshal(data, &categorizedTemplates); err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to parse plugin templates",
 		})
 	}
 
-	// Find the template
-	var template map[string]interface{}
-	for _, t := range templates {
-		if t["id"].(string) == body.TemplateID {
-			template = t
-			break
+	// Find the requested template
+	var selectedTemplate map[string]interface{}
+	templateFound := false
+
+	for _, categoryData := range categorizedTemplates {
+		if plugins, ok := categoryData["plugins"].([]interface{}); ok {
+			for _, plugin := range plugins {
+				if pluginMap, ok := plugin.(map[string]interface{}); ok {
+					if id, ok := pluginMap["id"].(string); ok && id == body.TemplateID {
+						selectedTemplate = pluginMap
+						templateFound = true
+						break
+					}
+				}
+			}
+			if templateFound {
+				break
+			}
 		}
 	}
-	if template == nil {
+
+	if !templateFound {
 		return c.Status(http.StatusNotFound).JSON(fiber.Map{
 			"error": "Template not found",
 		})
 	}
 
 	// Read the template source file
-	sourcePath := filepath.Join("plugins", template["file"].(string))
+	sourcePath := filepath.Join("plugins", selectedTemplate["file"].(string))
 	sourceContent, err := plugins.ReadFile(sourcePath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
@@ -420,7 +475,8 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 
 	// Replace variables in the source content
 	content := string(sourceContent)
-	log.Println(content)
+
+	// Process the variables
 	for key, value := range body.Variables {
 		var stringValue string
 
@@ -509,11 +565,23 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 		content = re.ReplaceAllString(content, "${1}"+stringValue+"${3}")
 	}
 
+	// Get the run_continuously and interval_seconds values if they were provided
+	runContinuously := false
+	intervalSeconds := 0
+	if c.Get("run_continuously") == "true" {
+		runContinuously = true
+	}
+	if intervalVal, err := strconv.Atoi(c.Get("interval_seconds")); err == nil {
+		intervalSeconds = intervalVal
+	}
+
 	// Create a new plugin
 	plugin := &db.Plugin{
-		Name:     template["title"].(string),
-		Code:     content,
-		OrderNum: -1, // Will be last in order
+		Name:            selectedTemplate["title"].(string),
+		Code:            content,
+		OrderNum:        -1, // Will be last in order
+		RunContinuously: runContinuously,
+		IntervalSeconds: intervalSeconds,
 	}
 
 	if err := h.store.Create(plugin); err != nil {
