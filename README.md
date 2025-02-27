@@ -96,7 +96,7 @@ BunDeck comes with several plugin templates:
 
 - **OBS Scene Control**: Toggle webcam visibility across OBS scenes
 - **Keystroke Sender**: Send keyboard shortcuts to your operating system
-- More templates are being added regularly
+- More templates are going to be added regularly
 
 ## Contributing
 
