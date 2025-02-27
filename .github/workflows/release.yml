@@ -6,7 +6,7 @@ on:
       - "v*.*.*"
 
 jobs:
-  build:
+  build-linux-windows:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,20 +46,78 @@ jobs:
       - name: Build Windows (arm64)
         run: GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-arm64.exe .
 
+      # Upload artifacts for release job
+      - name: Upload Linux/Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-windows-artifacts
+          path: |
+            bundeck-linux-amd64
+            bundeck-linux-arm64
+            bundeck-windows-amd64.exe
+            bundeck-windows-arm64.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.24"
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Build Web Assets
+        run: |
+          cd web
+          bun install
+          bun run build
+          cd ..
+
       # Build macOS app bundles
       - name: Build macOS App Bundles
         run: make build-macos
+
+      # Upload artifacts for release job
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-artifacts
+          path: |
+            Bundeck-macOS-intel.zip
+            Bundeck-macOS-apple.zip
+
+  create-release:
+    needs: [build-linux-windows, build-macos]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Prepare release files
+        run: |
+          mkdir release-files
+          cp ./artifacts/linux-windows-artifacts/* release-files/
+          cp ./artifacts/macos-artifacts/* release-files/
+          ls -la release-files/
 
       # Create release with all built artifacts
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            bundeck-linux-amd64
-            bundeck-linux-arm64
-            bundeck-windows-amd64.exe
-            bundeck-windows-arm64.exe
-            Bundeck-macOS-intel.zip
-            Bundeck-macOS-apple.zip
+            release-files/bundeck-linux-amd64
+            release-files/bundeck-linux-arm64
+            release-files/bundeck-windows-amd64.exe
+            release-files/bundeck-windows-arm64.exe
+            release-files/Bundeck-macOS-intel.zip
+            release-files/Bundeck-macOS-apple.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
