@@ -100,10 +100,48 @@ BunDeck comes with several plugin templates:
 
 ## Contributing
 
-Contributions to BunDeck are welcome! Whether it's bug reports, feature requests, documentation improvements, or code contributions, please feel free to contribute.
+For bugs, features, and discussion please use [GitHub Issues](https://github.com/ibanks42/bundeck/issues).
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+If you're opening a pull request, please make sure to run `make format` first.
+
+## macOS App Distribution
+
+### Code Signing and Notarization
+
+For proper distribution of the macOS app bundle, the application needs to be code signed and notarized with Apple. This ensures users can run the app without security warnings.
+
+#### Requirements for Code Signing:
+
+1. **Apple Developer Account**: You need to be enrolled in the [Apple Developer Program](https://developer.apple.com/programs/) ($99/year).
+2. **Developer ID Certificate**: Create a Developer ID Application certificate through the Apple Developer portal.
+3. **Notarization Access**: Set up an app-specific password for your Apple ID to allow for automated notarization.
+
+#### Setting up GitHub Secrets:
+
+For automated building and signing in GitHub Actions, add these secrets to your repository:
+
+- `MACOS_CERTIFICATE`: The base64-encoded .p12 certificate file
+- `MACOS_CERTIFICATE_PWD`: The password for your .p12 certificate
+- `MACOS_CERTIFICATE_NAME`: The name of your certificate (e.g., "Developer ID Application: Your Name (TEAMID)")
+- `MACOS_NOTARIZATION_APPLE_ID`: Your Apple ID email
+- `MACOS_NOTARIZATION_TEAM_ID`: Your Apple Developer Team ID
+- `MACOS_NOTARIZATION_PWD`: An app-specific password (create in Apple ID settings)
+- `MACOS_CI_KEYCHAIN_PWD`: A random password for the temporary keychain
+
+#### Local Testing:
+
+To test code signing locally:
+
+```bash
+# Code sign the app (replace with your certificate name)
+codesign --force --options runtime --sign "Developer ID Application: Your Name" ./dist/Bundeck.app
+
+# Verify the signature
+codesign -dv --verbose=4 ./dist/Bundeck.app
+```
+
+For more information, see Apple's [Code Signing Guide](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Introduction/Introduction.html).
+
+## License
+
+See [LICENSE](LICENSE) for details.
