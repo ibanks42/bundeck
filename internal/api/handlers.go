@@ -3,13 +3,12 @@ package api
 import (
 	"bundeck/internal/db"
 	"database/sql"
-	"embed"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
-	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -17,8 +16,13 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-//go:embed plugins
-var plugins embed.FS
+// PluginsFS is the embedded filesystem from main package that contains plugin templates
+var PluginsFS fs.FS
+
+// readPluginFile attempts to read a file from the embedded filesystem
+func readPluginFile(path string) ([]byte, error) {
+	return fs.ReadFile(PluginsFS, path)
+}
 
 // PluginStore interface for database operations
 type PluginStore interface {
@@ -376,8 +380,8 @@ func (h *Handlers) RunPlugin(c *fiber.Ctx) error {
 // GetPluginTemplates returns the list of available plugin templates
 func (h *Handlers) GetPluginTemplates(c *fiber.Ctx) error {
 	// Read templates from plugins/list.json
-	templatesPath := "plugins/list.json"
-	data, err := plugins.ReadFile(templatesPath)
+	templatesPath := "list.json"
+	data, err := readPluginFile(templatesPath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to read plugin templates",
@@ -421,8 +425,8 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 	}
 
 	// Read templates
-	templatesPath := "plugins/list.json"
-	data, err := plugins.ReadFile(templatesPath)
+	templatesPath := "list.json"
+	data, err := readPluginFile(templatesPath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to read plugin templates",
@@ -465,8 +469,8 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 	}
 
 	// Read the template source file
-	sourcePath := filepath.Join("plugins", selectedTemplate["file"].(string))
-	sourceContent, err := plugins.ReadFile(sourcePath)
+	sourcePath := selectedTemplate["file"].(string)
+	sourceContent, err := readPluginFile(sourcePath)
 	if err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to read template source",

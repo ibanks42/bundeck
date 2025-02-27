@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"embed"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"strconv"
@@ -29,6 +30,9 @@ var linuxLogo []byte
 
 //go:embed logo.icns
 var macLogo []byte
+
+//go:embed internal/api/plugins
+var PluginsFS embed.FS
 
 var dbPath = "./plugins.db"
 
@@ -57,6 +61,13 @@ func onReady() {
 		log.Fatal(err)
 	}
 	handlers := api.NewHandlers(store, runner)
+
+	// Set the plugins filesystem in api package
+	subFS, err := fs.Sub(PluginsFS, "internal/api/plugins")
+	if err != nil {
+		log.Fatal(err)
+	}
+	api.PluginsFS = subFS
 
 	// Initialize Fiber app
 	app := fiber.New()
