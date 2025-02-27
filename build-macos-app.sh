@@ -9,7 +9,7 @@ set -e
 APP_NAME="Bundeck"
 APP_VERSION=$(git describe --tags --always --dirty || echo "dev")
 BUNDLE_IDENTIFIER="com.ibanks42.bundeck"
-COPYRIGHT="© 2025 Isaiah Banks"
+COPYRIGHT=" 2025 Isaiah Banks"
 
 # Destination directories
 DIST_DIR="./dist"
@@ -19,13 +19,25 @@ MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 FRAMEWORKS_DIR="${CONTENTS_DIR}/Frameworks"
 
-# Clean up any existing app bundle
-rm -rf "${APP_DIR}"
+# Clean the existing app if it exists
+if [ -d "${DIST_DIR}/${APP_NAME}.app" ]; then
+    echo "Cleaning existing app bundle..."
+    rm -rf "${DIST_DIR}/${APP_NAME}.app"
+fi
 
-# Create directory structure
+# Create the basic app bundle structure
 mkdir -p "${MACOS_DIR}"
 mkdir -p "${RESOURCES_DIR}"
 mkdir -p "${FRAMEWORKS_DIR}"
+
+# Copy app icon if it exists
+if [ -f "logo.icns" ]; then
+    cp "logo.icns" "${RESOURCES_DIR}/AppIcon.icns"
+else
+    # Create a blank icon file as a placeholder
+    touch "${RESOURCES_DIR}/AppIcon.icns"
+    echo "Warning: No logo.icns found. Using placeholder."
+fi
 
 # Create Info.plist with full macOS menu bar app support
 cat > "${CONTENTS_DIR}/Info.plist" << EOF
@@ -80,12 +92,11 @@ cat > "${CONTENTS_DIR}/Info.plist" << EOF
     </dict>
     <key>NSUserNotificationAlertStyle</key>
     <string>alert</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
 </dict>
 </plist>
 EOF
-
-# Copy icon
-cp ./logo.icns "${RESOURCES_DIR}/AppIcon.icns"
 
 # Create PkgInfo file
 echo "APPL????" > "${CONTENTS_DIR}/PkgInfo"

@@ -81,7 +81,56 @@ jobs:
 
       # Build macOS app bundles
       - name: Build macOS App Bundles
-        run: make build-macos
+        run: make build-macos-apple
+
+      # Code sign app bundle
+      - name: Codesign app bundle
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
+          MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
+        run: |
+          # Turn our base64-encoded certificate back to a regular .p12 file
+          echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
+
+          # Create a keychain for the certificates
+          security create-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+          security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
+
+          # Sign the app
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime -v ./dist/Bundeck.app
+
+      # Notarize the app bundle
+      - name: Notarize app bundle
+        env:
+          MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+          MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
+          MACOS_NOTARIZATION_PWD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
+        run: |
+          # Create a zip for notarization
+          ditto -c -k --keepParent ./dist/Bundeck.app ./Bundeck.zip
+          
+          # Store notarization credentials
+          xcrun notarytool store-credentials "notarytool-profile" \
+            --apple-id "$MACOS_NOTARIZATION_APPLE_ID" \
+            --team-id "$MACOS_NOTARIZATION_TEAM_ID" \
+            --password "$MACOS_NOTARIZATION_PWD"
+          
+          # Submit for notarization
+          xcrun notarytool submit ./Bundeck.zip \
+            --keychain-profile "notarytool-profile" \
+            --wait
+          
+          # Staple the notarization to the app
+          xcrun stapler staple ./dist/Bundeck.app
+          
+          # Re-zip for distribution
+          ditto -c -k --keepParent ./dist/Bundeck.app ./Bundeck-notarized.zip
+          mv ./Bundeck-notarized.zip ./Bundeck-macOS-apple.zip
 
       # Upload artifacts for release job
       - name: Upload macOS artifacts
@@ -89,7 +138,6 @@ jobs:
         with:
           name: macos-artifacts
           path: |
-            Bundeck-macOS-intel.zip
             Bundeck-macOS-apple.zip
 
   create-release:
@@ -117,7 +165,7 @@ jobs:
             release-files/bundeck-linux-arm64
             release-files/bundeck-windows-amd64.exe
             release-files/bundeck-windows-arm64.exe
-            release-files/Bundeck-macOS-intel.zip
             release-files/Bundeck-macOS-apple.zip
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
