@@ -580,13 +580,26 @@ func (h *Handlers) CreatePluginFromTemplate(c *fiber.Ctx) error {
 	}
 
 	// Create a new plugin
-	plugin := &db.Plugin{
-		Name:            selectedTemplate["title"].(string),
-		Code:            content,
-		OrderNum:        -1, // Will be last in order
-		RunContinuously: runContinuously,
-		IntervalSeconds: intervalSeconds,
+	plugin := &db.Plugin{}
+
+	// Safely get the title
+	if title, ok := selectedTemplate["title"].(string); ok {
+		plugin.Name = title
+	} else if name, ok := selectedTemplate["name"].(string); ok {
+		plugin.Name = name
+	} else {
+		// Fallback to ID if neither title nor name is available
+		if id, ok := selectedTemplate["id"].(string); ok {
+			plugin.Name = id
+		} else {
+			plugin.Name = "Plugin from template"
+		}
 	}
+
+	plugin.Code = content
+	plugin.OrderNum = -1 // Will be last in order
+	plugin.RunContinuously = runContinuously
+	plugin.IntervalSeconds = intervalSeconds
 
 	if err := h.store.Create(plugin); err != nil {
 		return c.Status(http.StatusInternalServerError).JSON(fiber.Map{

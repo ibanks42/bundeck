@@ -31,8 +31,8 @@ var linuxLogo []byte
 //go:embed logo.icns
 var macLogo []byte
 
-//go:embed internal/api/plugins
-var PluginsFS embed.FS
+//go:embed plugins
+var pluginsEmbedFS embed.FS
 
 var dbPath = "./plugins.db"
 
@@ -63,7 +63,7 @@ func onReady() {
 	handlers := api.NewHandlers(store, runner)
 
 	// Set the plugins filesystem in api package
-	subFS, err := fs.Sub(PluginsFS, "internal/api/plugins")
+	subFS, err := fs.Sub(pluginsEmbedFS, "plugins")
 	if err != nil {
 		log.Fatal(err)
 	}

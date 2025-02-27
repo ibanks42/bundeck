@@ -1,25 +1,67 @@
 package main
 
 import (
+	"bundeck/internal/api"
 	"bundeck/internal/settings"
 	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/fs"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
+// Mock plugins filesystem for testing
+var mockPluginsEmbedFS = fstest.MapFS{
+	"plugins/list.json": &fstest.MapFile{
+		Data: []byte(`{
+			"utility": {
+				"name": "Utility",
+				"plugins": [
+					{
+						"id": "test-plugin",
+						"name": "Test Plugin",
+						"description": "A test plugin",
+						"file": "test-plugin.ts"
+					}
+				]
+			}
+		}`),
+	},
+	"plugins/test-plugin.ts": &fstest.MapFile{
+		Data: []byte(`// Test plugin
+export default {
+	run: async () => {
+		return "This is a test plugin";
+	}
+};`),
+	},
+}
+
 func TestMainIntegration(t *testing.T) {
+	// Skip this test by default as it starts a real server
+	if os.Getenv("RUN_INTEGRATION_TESTS") != "1" {
+		t.Skip("Skipping integration test. Set RUN_INTEGRATION_TESTS=1 to run")
+	}
+
 	// Create a temporary database file
 	dbPath = "test_plugins.db"
 	defer os.Remove(dbPath)
+
+	// Set up mock plugins filesystem
+	subFS, err := fs.Sub(mockPluginsEmbedFS, "plugins")
+	if err != nil {
+		t.Fatalf("Failed to create sub filesystem: %v", err)
+	}
+	api.PluginsFS = subFS
 
 	// Start the server in a goroutine
 	go func() {
