@@ -197,18 +197,26 @@ jobs:
             # Create a DMG installer
             echo "Creating DMG installer..."
 
+            # Create a temporary directory for DMG content
+            mkdir -p ./tmp-dmg-contents
+            cp -R ./dist/BunDeck.app ./tmp-dmg-contents/
+
             # Convert SVG to PNG for DMG background (if available)
+            # Keep background files outside the DMG contents
+            mkdir -p ./dmg-resources
             if command -v rsvg-convert &> /dev/null; then
               echo "Converting SVG to PNG for DMG background..."
-              rsvg-convert -w 600 -h 400 ./dist/dmg-background.svg -o ./dist/dmg-background.png
-              BACKGROUND_OPTION="--background ./dist/dmg-background.png"
+              # Use higher resolution for better quality and scaling
+              rsvg-convert -w 1200 -h 800 ./dist/dmg-background.svg -o ./dmg-resources/background.png
+              BACKGROUND_OPTION="--background ./dmg-resources/background.png --background-color '#f5f5f7'"
             elif command -v convert &> /dev/null; then
               echo "Converting SVG to PNG using ImageMagick..."
-              convert ./dist/dmg-background.svg ./dist/dmg-background.png
-              BACKGROUND_OPTION="--background ./dist/dmg-background.png"
+              # Create high quality PNG with proper scaling
+              convert -density 144 ./dist/dmg-background.svg -quality 100 ./dmg-resources/background.png
+              BACKGROUND_OPTION="--background ./dmg-resources/background.png --background-color '#f5f5f7'"
             else
-              echo "No SVG conversion tool found, skipping background image"
-              BACKGROUND_OPTION=""
+              echo "No SVG conversion tool found, using background color only"
+              BACKGROUND_OPTION="--background-color '#f5f5f7'"
             fi
 
             create-dmg \
@@ -221,8 +229,13 @@ jobs:
               --app-drop-link 450 190 \
               --no-internet-enable \
               $BACKGROUND_OPTION \
+              --format UDZO \
               "BunDeck-mac.dmg" \
-              "./dist/"
+              "./tmp-dmg-contents/"
+
+            # Clean up temporary directories
+            rm -rf ./tmp-dmg-contents
+            rm -rf ./dmg-resources
 
             # For compatibility, also maintain the zip version
             ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip

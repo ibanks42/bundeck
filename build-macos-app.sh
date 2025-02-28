@@ -104,8 +104,13 @@ chmod +x "${MACOS_DIR}/${APP_NAME}"
 # Create a simple DMG background image
 cat > "${DIST_DIR}/dmg-background.svg" << 'EOF'
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="400" fill="#f5f5f7"/>
+<svg width="100%" height="100%" viewBox="0 0 600 400" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      svg { width: 100%; height: 100%; }
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="#f5f5f7"/>
   <path d="M280,190 L320,190 L320,180 L340,200 L320,220 L320,210 L280,210 Z" fill="#333"/>
 </svg>
 EOF
