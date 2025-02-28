@@ -120,6 +120,17 @@ The app runs as a system tray icon - check your menu bar after launching.
 If you need to debug issues, check the log file at: ~/Library/Logs/BunDeck.log
 EOF
 
+# Create a simple DMG background image
+cat > "${DIST_DIR}/dmg-background.svg" << 'EOF'
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="600" height="400" fill="#f5f5f7"/>
+  <text x="300" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="#333">Drag BunDeck to your Applications folder to install</text>
+  <text x="300" y="300" font-family="Arial" font-size="14" text-anchor="middle" fill="#666">After installation, launch BunDeck from your Applications folder</text>
+  <path d="M 280,190 L 320,190 L 300,160 Z" fill="#333"/>
+</svg>
+EOF
+
 # Create Info.plist with full macOS menu bar app support
 cat > "${CONTENTS_DIR}/Info.plist" << EOF
 <?xml version="1.0" encoding="UTF-8"?>

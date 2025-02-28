@@ -91,6 +91,12 @@ jobs:
       - name: Build macOS App Bundles
         run: make build-macos-apple
 
+      # Install create-dmg tool
+      - name: Install create-dmg
+        run: |
+          brew install create-dmg
+          brew install librsvg   # For rsvg-convert tool
+
       # Code sign app bundle
       - name: Codesign app bundle
         env:
@@ -188,13 +194,45 @@ jobs:
             # Staple the notarization to the app
             xcrun stapler staple ./dist/BunDeck.app
 
-            # Re-zip for distribution
+            # Create a DMG installer
+            echo "Creating DMG installer..."
+
+            # Convert SVG to PNG for DMG background (if available)
+            if command -v rsvg-convert &> /dev/null; then
+              echo "Converting SVG to PNG for DMG background..."
+              rsvg-convert -w 600 -h 400 ./dist/dmg-background.svg -o ./dist/dmg-background.png
+              BACKGROUND_OPTION="--background ./dist/dmg-background.png"
+            elif command -v convert &> /dev/null; then
+              echo "Converting SVG to PNG using ImageMagick..."
+              convert ./dist/dmg-background.svg ./dist/dmg-background.png
+              BACKGROUND_OPTION="--background ./dist/dmg-background.png"
+            else
+              echo "No SVG conversion tool found, skipping background image"
+              BACKGROUND_OPTION=""
+            fi
+
+            create-dmg \
+              --volname "BunDeck" \
+              --window-pos 200 120 \
+              --window-size 600 400 \
+              --icon-size 100 \
+              --icon "BunDeck.app" 150 190 \
+              --hide-extension "BunDeck.app" \
+              --app-drop-link 450 190 \
+              --no-internet-enable \
+              $BACKGROUND_OPTION \
+              "BunDeck-macOS.dmg" \
+              "./dist/"
+
+            # For compatibility, also maintain the zip version
             ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
 
             # Include README in the zip
             zip -j ./BunDeck-notarized.zip ./dist/README.txt
 
+            # Rename files for distribution
             mv ./BunDeck-notarized.zip ./BunDeck-macOS-apple.zip
+            mv ./BunDeck-macOS.dmg ./BunDeck-macOS.dmg
           else
             echo "Notarization failed. See output above for details."
             # Extract submission ID to get logs
@@ -212,7 +250,7 @@ jobs:
         with:
           name: macos-artifacts
           path: |
-            BunDeck-macOS-apple.zip
+            BunDeck-macOS.dmg
 
   create-release:
     needs: [build-linux-windows, build-macos]
@@ -239,7 +277,7 @@ jobs:
             release-files/bundeck-linux-arm64
             release-files/bundeck-windows-amd64.exe
             release-files/bundeck-windows-arm64.exe
-            release-files/BunDeck-macOS-apple.zip
+            release-files/BunDeck-macOS.dmg
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
