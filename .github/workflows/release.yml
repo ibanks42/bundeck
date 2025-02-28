@@ -208,12 +208,12 @@ jobs:
               echo "Converting SVG to PNG for DMG background..."
               # Use higher resolution for better quality and scaling
               rsvg-convert -w 1200 -h 800 ./dist/dmg-background.svg -o ./dmg-resources/background.png
-              BACKGROUND_OPTION="--background ./dmg-resources/background.png --background-color '#f5f5f7'"
+              BACKGROUND_OPTION="--background ./dmg-resources/background.png"
             elif command -v convert &> /dev/null; then
               echo "Converting SVG to PNG using ImageMagick..."
               # Create high quality PNG with proper scaling
               convert -density 144 ./dist/dmg-background.svg -quality 100 ./dmg-resources/background.png
-              BACKGROUND_OPTION="--background ./dmg-resources/background.png --background-color '#f5f5f7'"
+              BACKGROUND_OPTION="--background ./dmg-resources/background.png"
             else
               echo "No SVG conversion tool found, using background color only"
               BACKGROUND_OPTION="--background-color '#f5f5f7'"
