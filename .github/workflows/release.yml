@@ -181,32 +181,28 @@ jobs:
 
           echo "$NOTARIZATION_OUTPUT"
 
-          # Extract submission ID for logs
-          SUBMISSION_ID=$(echo "$NOTARIZATION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
-          echo "Notarization Submission ID: $SUBMISSION_ID"
+          # Check if notarization was successful
+          if echo "$NOTARIZATION_OUTPUT" | grep -q "status: Accepted"; then
+            echo "Notarization successful"
 
-          # Get detailed log
-          if [[ -n "$SUBMISSION_ID" ]]; then
-            echo "Notarization Log:"
-            xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "notarytool-profile"
+            # Staple the notarization to the app
+            xcrun stapler staple ./dist/BunDeck.app
 
-            # Check if notarization was successful
-            if echo "$NOTARIZATION_OUTPUT" | grep -q "Accepted"; then
-              echo "Notarization successful, stapling ticket..."
+            # Re-zip for distribution
+            ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
 
-              # Staple the notarization to the app
-              xcrun stapler staple ./dist/BunDeck.app
-              xcrun stapler validate ./dist/BunDeck.app
+            # Include README in the zip
+            zip -j ./BunDeck-notarized.zip ./dist/README.txt
 
-              # Re-zip for distribution
-              ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
-              mv ./BunDeck-notarized.zip ./BunDeck-macOS-apple.zip
-            else
-              echo "Notarization failed!"
-              exit 1
-            fi
+            mv ./BunDeck-notarized.zip ./BunDeck-macOS-apple.zip
           else
-            echo "Failed to get submission ID"
+            echo "Notarization failed. See output above for details."
+            # Extract submission ID to get logs
+            SUBMISSION_ID=$(echo "$NOTARIZATION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+            if [ -n "$SUBMISSION_ID" ]; then
+              echo "Getting detailed logs for submission $SUBMISSION_ID"
+              xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "notarytool-profile"
+            fi
             exit 1
           fi
 

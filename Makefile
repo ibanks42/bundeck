@@ -7,15 +7,17 @@ build:
 # Clean build artifacts
 clean:
 	rm -f bundeck
+	rm -f BunDeck-*
 	rm -f *.zip
+	rm -rf dist
 
-# Build macOS app bundle for Intel
-build-macos-intel: build
+# Build macOS app bundle for Intel/x86_64
+build-macos-intel:
 	chmod +x ./build-macos-app.sh
 	./build-macos-app.sh intel
 
 # Build macOS app bundle for Apple Silicon
-build-macos-apple: build
+build-macos-apple:
 	chmod +x ./build-macos-app.sh
 	./build-macos-app.sh apple
 

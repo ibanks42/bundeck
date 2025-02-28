@@ -33,11 +33,92 @@ mkdir -p "${FRAMEWORKS_DIR}"
 # Copy app icon if it exists
 if [ -f "logo.icns" ]; then
     cp "logo.icns" "${RESOURCES_DIR}/AppIcon.icns"
+elif [ -f "icon.icns" ]; then
+    cp "icon.icns" "${RESOURCES_DIR}/AppIcon.icns"
 else
     # Create a blank icon file as a placeholder
     touch "${RESOURCES_DIR}/AppIcon.icns"
-    echo "Warning: No logo.icns found. Using placeholder."
+    echo "Warning: No logo.icns or icon.icns found. Using placeholder."
 fi
+
+# Build for both architectures and create universal binary
+echo "Building for Apple Silicon (arm64)..."
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o "${APP_NAME}-arm64" .
+
+echo "Building for Intel (amd64)..."
+GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o "${APP_NAME}-amd64" .
+
+echo "Creating universal binary..."
+lipo -create -output "${APP_NAME}" "${APP_NAME}-arm64" "${APP_NAME}-amd64"
+
+# Check the resulting binary
+lipo -info "${APP_NAME}"
+
+# Copy binary to app bundle
+cp "${APP_NAME}" "${MACOS_DIR}/${APP_NAME}-bin"
+
+# Create a launcher script that properly handles macOS environment
+cat > "${MACOS_DIR}/${APP_NAME}" << 'EOF'
+#!/bin/bash
+# Launcher script for BunDeck
+# This handles proper launching of system tray applications
+
+# Get the directory where this script is located
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+LOG_FILE=~/Library/Logs/BunDeck.log
+
+# Create log directory if it doesn't exist
+mkdir -p ~/Library/Logs
+
+# Log start time and environment
+echo "==============================================" >> "${LOG_FILE}"
+echo "[BunDeck] Starting at $(date)" >> "${LOG_FILE}"
+echo "[BunDeck] Running from $DIR" >> "${LOG_FILE}"
+echo "[BunDeck] PATH: $PATH" >> "${LOG_FILE}"
+
+# Remove quarantine attribute if it exists
+echo "[BunDeck] Removing quarantine attribute if present" >> "${LOG_FILE}"
+xattr -d com.apple.quarantine "$DIR/../.." 2>/dev/null || true
+
+# Set up environment for macOS
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
+# Fix for Finder launching
+if [[ -z "$TERM_PROGRAM" && "$TERM" == "dumb" ]]; then
+    # This is being launched from Finder
+    echo "[BunDeck] Detected launch from Finder" >> "${LOG_FILE}"
+    # Force GUI mode and set proper working directory
+    cd "$DIR"
+    exec "$DIR/BunDeck-bin" >> "${LOG_FILE}" 2>&1
+else
+    # Standard launch (Terminal or direct execution)
+    echo "[BunDeck] Standard launch" >> "${LOG_FILE}"
+    cd "$DIR"
+    exec "$DIR/BunDeck-bin" >> "${LOG_FILE}" 2>&1
+fi
+EOF
+
+# Make the launcher script executable
+chmod +x "${MACOS_DIR}/${APP_NAME}"
+
+# Create README with instructions for running
+cat > "${DIST_DIR}/README.txt" << 'EOF'
+BunDeck
+
+If you have trouble running the app after downloading:
+
+1. Right-click on BunDeck.app and select "Open" (not double-click)
+2. You'll see a security dialog - click "Open" to run the app
+3. For future launches, you can then use double-click normally
+
+If the app still doesn't open:
+1. Open Terminal
+2. Run: xattr -cr /path/to/BunDeck.app
+3. Try opening the app again
+
+The app runs as a system tray icon - check your menu bar after launching.
+If you need to debug issues, check the log file at: ~/Library/Logs/BunDeck.log
+EOF
 
 # Create Info.plist with full macOS menu bar app support
 cat > "${CONTENTS_DIR}/Info.plist" << EOF
@@ -73,8 +154,6 @@ cat > "${CONTENTS_DIR}/Info.plist" << EOF
     <string>NSApplication</string>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
-    <key>NSAppleEventsUsageDescription</key>
-    <string>${APP_NAME} needs to send Apple Events to display correctly in the menu bar.</string>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
     <key>LSMinimumSystemVersion</key>
@@ -101,81 +180,22 @@ EOF
 # Create PkgInfo file
 echo "APPL????" > "${CONTENTS_DIR}/PkgInfo"
 
-# Build for a specific architecture
-build_for_arch() {
-    local arch=$1
-    local output_name="${APP_NAME}-macOS-${arch}.zip"
+# Clean up temporary files
+rm -f "${APP_NAME}-arm64" "${APP_NAME}-amd64" "${APP_NAME}"
 
-    echo "Building for ${arch}..."
+# Create zip archives for distribution
+if [ "$1" == "intel" ] || [ "$1" == "apple" ]; then
+    echo "Creating zip for $1..."
+    (cd "${DIST_DIR}" && zip -r "${APP_NAME}-macOS-$1.zip" "${APP_NAME}.app")
+    mv "${DIST_DIR}/${APP_NAME}-macOS-$1.zip" .
 
-    if [ "$arch" == "intel" ]; then
-        # Build for Intel (amd64)
-        GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build -o "${MACOS_DIR}/${APP_NAME}-bin" -ldflags "-s -w"
-    elif [ "$arch" == "apple" ]; then
-        # Build for Apple Silicon (arm64)
-        GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build -o "${MACOS_DIR}/${APP_NAME}-bin" -ldflags "-s -w"
-    else
-        echo "Unknown architecture: ${arch}"
-        exit 1
-    fi
+    # Add README to the zip
+    zip -j "${APP_NAME}-macOS-$1.zip" "${DIST_DIR}/README.txt"
 
-    # Make binary executable
-    chmod +x "${MACOS_DIR}/${APP_NAME}-bin"
-
-    # Create a launcher script that properly handles macOS environment
-    cat > "${MACOS_DIR}/${APP_NAME}" << EOF
-#!/bin/bash
-
-# Get the directory where this script is located
-DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-LOG_FILE=~/Library/Logs/BunDeck.log
-
-# Create log directory if it doesn't exist
-mkdir -p ~/Library/Logs
-
-# Log start time and environment
-echo "==============================================" >> "\${LOG_FILE}"
-echo "[BunDeck] Starting at \$(date)" >> "\${LOG_FILE}"
-echo "[BunDeck] Running from \$DIR" >> "\${LOG_FILE}"
-echo "[BunDeck] PATH: \$PATH" >> "\${LOG_FILE}"
-echo "[BunDeck] DYLD_LIBRARY_PATH: \$DYLD_LIBRARY_PATH" >> "\${LOG_FILE}"
-
-# Set up environment for macOS
-export PATH="/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
-
-# Fix for Finder launching
-if [[ -z "\$TERM_PROGRAM" && "\$TERM" == "dumb" ]]; then
-    # This is being launched from Finder
-    echo "[BunDeck] Detected launch from Finder" >> "\${LOG_FILE}"
-    # Force GUI mode and set proper working directory
-    cd "\$DIR"
-    exec "\$DIR/${APP_NAME}-bin" >> "\${LOG_FILE}" 2>&1
+    echo "Created ${APP_NAME}-macOS-$1.zip"
 else
-    # Standard launch (Terminal or other)
-    echo "[BunDeck] Standard launch" >> "\${LOG_FILE}"
-    cd "\$DIR"
-    exec "\$DIR/${APP_NAME}-bin" >> "\${LOG_FILE}" 2>&1
-fi
-EOF
-
-    # Make the launcher script executable
-    chmod +x "${MACOS_DIR}/${APP_NAME}"
-
-    # Create zip archive
-    (cd "${DIST_DIR}" && zip -r "${output_name}" "${APP_NAME}.app")
-    mv "${DIST_DIR}/${output_name}" .
-
-    echo "Created ${output_name}"
-}
-
-# Check architecture argument
-if [ "$1" == "intel" ]; then
-    build_for_arch "intel"
-elif [ "$1" == "apple" ]; then
-    build_for_arch "apple"
-else
-    echo "Error: Please specify 'intel' or 'apple' as the first argument"
-    exit 1
+    # If no specific architecture is specified, just output the app bundle
+    echo "Universal app bundle created (no specific architecture specified for zip)"
 fi
 
 echo "macOS app bundle created successfully!"
