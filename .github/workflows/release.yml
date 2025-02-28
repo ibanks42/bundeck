@@ -95,7 +95,6 @@ jobs:
       - name: Install create-dmg
         run: |
           brew install create-dmg
-          brew install librsvg   # For rsvg-convert tool
 
       # Code sign app bundle
       - name: Codesign app bundle
@@ -201,24 +200,6 @@ jobs:
             mkdir -p ./tmp-dmg-contents
             cp -R ./dist/BunDeck.app ./tmp-dmg-contents/
 
-            # Convert SVG to PNG for DMG background (if available)
-            # Keep background files outside the DMG contents
-            mkdir -p ./dmg-resources
-            if command -v rsvg-convert &> /dev/null; then
-              echo "Converting SVG to PNG for DMG background..."
-              # Use higher resolution for better quality and scaling
-              rsvg-convert -w 1200 -h 800 ./dist/dmg-background.svg -o ./dmg-resources/background.png
-              BACKGROUND_OPTION="--background ./dmg-resources/background.png"
-            elif command -v convert &> /dev/null; then
-              echo "Converting SVG to PNG using ImageMagick..."
-              # Create high quality PNG with proper scaling
-              convert -density 144 ./dist/dmg-background.svg -quality 100 ./dmg-resources/background.png
-              BACKGROUND_OPTION="--background ./dmg-resources/background.png"
-            else
-              echo "No SVG conversion tool found, using background color only"
-              BACKGROUND_OPTION="--background-color '#f5f5f7'"
-            fi
-
             create-dmg \
               --volname "BunDeck" \
               --window-pos 200 120 \
@@ -228,14 +209,12 @@ jobs:
               --hide-extension "BunDeck.app" \
               --app-drop-link 450 190 \
               --no-internet-enable \
-              $BACKGROUND_OPTION \
               --format UDZO \
               "BunDeck-mac.dmg" \
               "./tmp-dmg-contents/"
 
             # Clean up temporary directories
             rm -rf ./tmp-dmg-contents
-            rm -rf ./dmg-resources
 
             # For compatibility, also maintain the zip version
             ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
