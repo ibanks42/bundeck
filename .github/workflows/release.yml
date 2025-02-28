@@ -38,17 +38,17 @@ jobs:
 
       # Build Linux binaries
       - name: Build Linux (amd64)
-        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-amd64 .
+        run: GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o BunDeck-linux-amd64 .
 
       - name: Build Linux (arm64)
-        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o bundeck-linux-arm64 .
+        run: GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o BunDeck-linux-arm64 .
 
       # Build Windows binaries
       - name: Build Windows (amd64)
-        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-amd64.exe .
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o BunDeck-windows-amd64.exe .
 
       - name: Build Windows (arm64)
-        run: GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o bundeck-windows-arm64.exe .
+        run: GOOS=windows GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-H=windowsgui -s -w" -o BunDeck-windows-arm64.exe .
 
       # Upload artifacts for release job
       - name: Upload Linux/Windows artifacts
@@ -56,10 +56,10 @@ jobs:
         with:
           name: linux-windows-artifacts
           path: |
-            bundeck-linux-amd64
-            bundeck-linux-arm64
-            bundeck-windows-amd64.exe
-            bundeck-windows-arm64.exe
+            BunDeck-linux-amd64
+            BunDeck-linux-arm64
+            BunDeck-windows-amd64.exe
+            BunDeck-windows-arm64.exe
 
   build-macos:
     runs-on: macos-latest
@@ -221,18 +221,14 @@ jobs:
               --app-drop-link 450 190 \
               --no-internet-enable \
               $BACKGROUND_OPTION \
-              "BunDeck-macOS.dmg" \
+              "BunDeck-mac.dmg" \
               "./dist/"
 
             # For compatibility, also maintain the zip version
             ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
 
-            # Include README in the zip
-            zip -j ./BunDeck-notarized.zip ./dist/README.txt
-
             # Rename files for distribution
-            mv ./BunDeck-notarized.zip ./BunDeck-macOS-apple.zip
-            mv ./BunDeck-macOS.dmg ./BunDeck-macOS.dmg
+            mv ./BunDeck-notarized.zip ./BunDeck-mac.zip
           else
             echo "Notarization failed. See output above for details."
             # Extract submission ID to get logs
@@ -250,7 +246,7 @@ jobs:
         with:
           name: macos-artifacts
           path: |
-            BunDeck-macOS.dmg
+            BunDeck-mac.dmg
 
   create-release:
     needs: [build-linux-windows, build-macos]
@@ -273,11 +269,11 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            release-files/bundeck-linux-amd64
-            release-files/bundeck-linux-arm64
-            release-files/bundeck-windows-amd64.exe
-            release-files/bundeck-windows-arm64.exe
-            release-files/BunDeck-macOS.dmg
+            release-files/BunDeck-linux-amd64
+            release-files/BunDeck-linux-arm64
+            release-files/BunDeck-windows-amd64.exe
+            release-files/BunDeck-windows-arm64.exe
+            release-files/BunDeck-mac.dmg
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

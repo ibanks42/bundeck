@@ -101,33 +101,13 @@ EOF
 # Make the launcher script executable
 chmod +x "${MACOS_DIR}/${APP_NAME}"
 
-# Create README with instructions for running
-cat > "${DIST_DIR}/README.txt" << 'EOF'
-BunDeck
-
-If you have trouble running the app after downloading:
-
-1. Right-click on BunDeck.app and select "Open" (not double-click)
-2. You'll see a security dialog - click "Open" to run the app
-3. For future launches, you can then use double-click normally
-
-If the app still doesn't open:
-1. Open Terminal
-2. Run: xattr -cr /path/to/BunDeck.app
-3. Try opening the app again
-
-The app runs as a system tray icon - check your menu bar after launching.
-If you need to debug issues, check the log file at: ~/Library/Logs/BunDeck.log
-EOF
-
 # Create a simple DMG background image
 cat > "${DIST_DIR}/dmg-background.svg" << 'EOF'
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
-  <rect width="600" height="400" fill="#f5f5f7"/>
-  <text x="300" y="100" font-family="Arial" font-size="24" text-anchor="middle" fill="#333">Drag BunDeck to your Applications folder to install</text>
-  <text x="300" y="300" font-family="Arial" font-size="14" text-anchor="middle" fill="#666">After installation, launch BunDeck from your Applications folder</text>
-  <path d="M 280,190 L 320,190 L 300,160 Z" fill="#333"/>
+  <rect width="600" height="400" fill="#4a4a5a"/>
+  <text x="100" y="100" font-family="Verdana" font-size="24" text-anchor="left" fill="#f5f5f7">BunDeck</text>
+  <path d="M280,190 L320,190 L320,180 L340,200 L320,220 L320,210 L280,210 Z" fill="#f5f5f7"/>
 </svg>
 EOF
 
@@ -197,13 +177,10 @@ rm -f "${APP_NAME}-arm64" "${APP_NAME}-amd64" "${APP_NAME}"
 # Create zip archives for distribution
 if [ "$1" == "intel" ] || [ "$1" == "apple" ]; then
     echo "Creating zip for $1..."
-    (cd "${DIST_DIR}" && zip -r "${APP_NAME}-macOS-$1.zip" "${APP_NAME}.app")
-    mv "${DIST_DIR}/${APP_NAME}-macOS-$1.zip" .
+    (cd "${DIST_DIR}" && zip -r "${APP_NAME}-mac-$1.zip" "${APP_NAME}.app")
+    mv "${DIST_DIR}/${APP_NAME}-mac-$1.zip" .
 
-    # Add README to the zip
-    zip -j "${APP_NAME}-macOS-$1.zip" "${DIST_DIR}/README.txt"
-
-    echo "Created ${APP_NAME}-macOS-$1.zip"
+    echo "Created ${APP_NAME}-mac-$1.zip"
 else
     # If no specific architecture is specified, just output the app bundle
     echo "Universal app bundle created (no specific architecture specified for zip)"
