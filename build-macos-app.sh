@@ -9,7 +9,7 @@ set -e
 APP_NAME="BunDeck"
 APP_VERSION=$(git describe --tags --always --dirty || echo "dev")
 BUNDLE_IDENTIFIER="com.ibanks42.bundeck"
-COPYRIGHT=" 2025 Isaiah Banks"
+COPYRIGHT="©️ 2025 Isaiah Banks"
 
 # Destination directories
 DIST_DIR="./dist"
@@ -43,10 +43,10 @@ fi
 
 # Build for both architectures and create universal binary
 echo "Building for Apple Silicon (arm64)..."
-GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags "-s -w" -o "${APP_NAME}-arm64" .
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=1 go build -ldflags "-s -w" -o "${APP_NAME}-arm64" .
 
 echo "Building for Intel (amd64)..."
-GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-s -w" -o "${APP_NAME}-amd64" .
+GOOS=darwin GOARCH=amd64 CGO_ENABLED=1 go build -ldflags "-s -w" -o "${APP_NAME}-amd64" .
 
 echo "Creating universal binary..."
 lipo -create -output "${APP_NAME}" "${APP_NAME}-arm64" "${APP_NAME}-amd64"
