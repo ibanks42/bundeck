@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
 
-# Build Bundeck macOS application bundle
+# Build BunDeck macOS application bundle
 # Comprehensive macOS app bundle creation script with proper systray support
 # Works for Apple Silicon and Intel Macs
 
 # Parameters
-APP_NAME="Bundeck"
+APP_NAME="BunDeck"
 APP_VERSION=$(git describe --tags --always --dirty || echo "dev")
 BUNDLE_IDENTIFIER="com.ibanks42.bundeck"
 COPYRIGHT=" 2025 Isaiah Banks"
@@ -128,17 +128,17 @@ build_for_arch() {
 
 # Get the directory where this script is located
 DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
-LOG_FILE=~/Library/Logs/Bundeck.log
+LOG_FILE=~/Library/Logs/BunDeck.log
 
 # Create log directory if it doesn't exist
 mkdir -p ~/Library/Logs
 
 # Log start time and environment
 echo "==============================================" >> "\${LOG_FILE}"
-echo "[Bundeck] Starting at \$(date)" >> "\${LOG_FILE}"
-echo "[Bundeck] Running from \$DIR" >> "\${LOG_FILE}"
-echo "[Bundeck] PATH: \$PATH" >> "\${LOG_FILE}"
-echo "[Bundeck] DYLD_LIBRARY_PATH: \$DYLD_LIBRARY_PATH" >> "\${LOG_FILE}"
+echo "[BunDeck] Starting at \$(date)" >> "\${LOG_FILE}"
+echo "[BunDeck] Running from \$DIR" >> "\${LOG_FILE}"
+echo "[BunDeck] PATH: \$PATH" >> "\${LOG_FILE}"
+echo "[BunDeck] DYLD_LIBRARY_PATH: \$DYLD_LIBRARY_PATH" >> "\${LOG_FILE}"
 
 # Set up environment for macOS
 export PATH="/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
@@ -146,13 +146,13 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin:\$PATH"
 # Fix for Finder launching
 if [[ -z "\$TERM_PROGRAM" && "\$TERM" == "dumb" ]]; then
     # This is being launched from Finder
-    echo "[Bundeck] Detected launch from Finder" >> "\${LOG_FILE}"
+    echo "[BunDeck] Detected launch from Finder" >> "\${LOG_FILE}"
     # Force GUI mode and set proper working directory
     cd "\$DIR"
     exec "\$DIR/${APP_NAME}-bin" >> "\${LOG_FILE}" 2>&1
 else
     # Standard launch (Terminal or other)
-    echo "[Bundeck] Standard launch" >> "\${LOG_FILE}"
+    echo "[BunDeck] Standard launch" >> "\${LOG_FILE}"
     cd "\$DIR"
     exec "\$DIR/${APP_NAME}-bin" >> "\${LOG_FILE}" 2>&1
 fi

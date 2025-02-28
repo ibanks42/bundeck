@@ -99,6 +99,26 @@ jobs:
           MACOS_CERTIFICATE_NAME: ${{ secrets.MACOS_CERTIFICATE_NAME }}
           MACOS_CI_KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
         run: |
+          # Create entitlements file
+          cat > entitlements.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>com.apple.security.cs.allow-jit</key>
+              <true/>
+              <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+              <true/>
+              <key>com.apple.security.cs.disable-library-validation</key>
+              <true/>
+              <key>com.apple.security.cs.disable-executable-page-protection</key>
+              <true/>
+              <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF
+
           # Turn our base64-encoded certificate back to a regular .p12 file
           echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
 
@@ -109,8 +129,34 @@ jobs:
           security import certificate.p12 -k build.keychain -P "$MACOS_CERTIFICATE_PWD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$MACOS_CI_KEYCHAIN_PWD" build.keychain
 
-          # Sign the app
-          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" --options runtime -v ./dist/Bundeck.app
+          # Verify certificate is available
+          security find-identity -v -p codesigning build.keychain
+
+          # Sign the binaries inside the app bundle first
+          echo "Signing binaries..."
+          /usr/bin/codesign --force -o runtime \
+              --sign "$MACOS_CERTIFICATE_NAME" \
+              --entitlements entitlements.plist \
+              --timestamp \
+              --verbose ./dist/BunDeck.app/Contents/MacOS/BunDeck-bin
+
+          /usr/bin/codesign --force -o runtime \
+              --sign "$MACOS_CERTIFICATE_NAME" \
+              --entitlements entitlements.plist \
+              --timestamp \
+              --verbose ./dist/BunDeck.app/Contents/MacOS/BunDeck
+
+          # Sign the entire app bundle
+          echo "Signing app bundle..."
+          /usr/bin/codesign --force --deep -o runtime \
+              --sign "$MACOS_CERTIFICATE_NAME" \
+              --entitlements entitlements.plist \
+              --timestamp \
+              --verbose ./dist/BunDeck.app
+
+          # Verify signatures
+          codesign -dv --verbose=4 ./dist/BunDeck.app
+          codesign --verify --deep --strict --verbose=2 ./dist/BunDeck.app
 
       # Notarize the app bundle
       - name: Notarize app bundle
@@ -120,25 +166,49 @@ jobs:
           MACOS_NOTARIZATION_PWD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
         run: |
           # Create a zip for notarization
-          ditto -c -k --keepParent ./dist/Bundeck.app ./Bundeck.zip
-          
+          ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck.zip
+
           # Store notarization credentials
           xcrun notarytool store-credentials "notarytool-profile" \
             --apple-id "$MACOS_NOTARIZATION_APPLE_ID" \
             --team-id "$MACOS_NOTARIZATION_TEAM_ID" \
             --password "$MACOS_NOTARIZATION_PWD"
-          
-          # Submit for notarization
-          xcrun notarytool submit ./Bundeck.zip \
+
+          # Submit for notarization and capture output
+          NOTARIZATION_OUTPUT=$(xcrun notarytool submit ./BunDeck.zip \
             --keychain-profile "notarytool-profile" \
-            --wait
+            --wait)
           
-          # Staple the notarization to the app
-          xcrun stapler staple ./dist/Bundeck.app
+          echo "$NOTARIZATION_OUTPUT"
           
-          # Re-zip for distribution
-          ditto -c -k --keepParent ./dist/Bundeck.app ./Bundeck-notarized.zip
-          mv ./Bundeck-notarized.zip ./Bundeck-macOS-apple.zip
+          # Extract submission ID for logs
+          SUBMISSION_ID=$(echo "$NOTARIZATION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
+          echo "Notarization Submission ID: $SUBMISSION_ID"
+          
+          # Get detailed log
+          if [[ -n "$SUBMISSION_ID" ]]; then
+            echo "Notarization Log:"
+            xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "notarytool-profile"
+            
+            # Check if notarization was successful
+            if echo "$NOTARIZATION_OUTPUT" | grep -q "status: Accepted"; then
+              echo "Notarization successful, stapling ticket..."
+              
+              # Staple the notarization to the app
+              xcrun stapler staple ./dist/BunDeck.app
+              xcrun stapler validate ./dist/BunDeck.app
+              
+              # Re-zip for distribution
+              ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
+              mv ./BunDeck-notarized.zip ./BunDeck-macOS-apple.zip
+            else
+              echo "Notarization failed!"
+              exit 1
+            fi
+          else
+            echo "Failed to get submission ID"
+            exit 1
+          fi
 
       # Upload artifacts for release job
       - name: Upload macOS artifacts
@@ -146,7 +216,7 @@ jobs:
         with:
           name: macos-artifacts
           path: |
-            Bundeck-macOS-apple.zip
+            BunDeck-macOS-apple.zip
 
   create-release:
     needs: [build-linux-windows, build-macos]
@@ -173,7 +243,7 @@ jobs:
             release-files/bundeck-linux-arm64
             release-files/bundeck-windows-amd64.exe
             release-files/bundeck-windows-arm64.exe
-            release-files/Bundeck-macOS-apple.zip
+            release-files/BunDeck-macOS-apple.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
