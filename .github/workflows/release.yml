@@ -178,26 +178,26 @@ jobs:
           NOTARIZATION_OUTPUT=$(xcrun notarytool submit ./BunDeck.zip \
             --keychain-profile "notarytool-profile" \
             --wait)
-          
+
           echo "$NOTARIZATION_OUTPUT"
-          
+
           # Extract submission ID for logs
           SUBMISSION_ID=$(echo "$NOTARIZATION_OUTPUT" | grep "id:" | head -1 | awk '{print $2}')
           echo "Notarization Submission ID: $SUBMISSION_ID"
-          
+
           # Get detailed log
           if [[ -n "$SUBMISSION_ID" ]]; then
             echo "Notarization Log:"
             xcrun notarytool log "$SUBMISSION_ID" --keychain-profile "notarytool-profile"
-            
+
             # Check if notarization was successful
-            if echo "$NOTARIZATION_OUTPUT" | grep -q "status: Accepted"; then
+            if echo "$NOTARIZATION_OUTPUT" | grep -q "Accepted"; then
               echo "Notarization successful, stapling ticket..."
-              
+
               # Staple the notarization to the app
               xcrun stapler staple ./dist/BunDeck.app
               xcrun stapler validate ./dist/BunDeck.app
-              
+
               # Re-zip for distribution
               ditto -c -k --keepParent ./dist/BunDeck.app ./BunDeck-notarized.zip
               mv ./BunDeck-notarized.zip ./BunDeck-macOS-apple.zip
