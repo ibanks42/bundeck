@@ -37,8 +37,8 @@ var (
 )
 
 func main() {
-	fyne_app = app.NewWithID("dev.ibanks.opendesk")
-	window = fyne_app.NewWindow("OpenDesk Client")
+	fyne_app = app.NewWithID("dev.ibanks.bundeck")
+	window = fyne_app.NewWindow("BunDeck Client")
 	fyne_app.Settings().SetTheme(theme.DarkTheme())
 
 	window.Resize(fyne.NewSize(600, 420))

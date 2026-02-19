@@ -1,4 +1,4 @@
-module opendeck-client
+module bundeck-client
 
 go 1.23.2
 

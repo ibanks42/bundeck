@@ -16,7 +16,7 @@ type Script struct {
 }
 
 var getScriptsPath = func() string {
-	return filepath.Join(os.Getenv("HOME"), ".opendeck", "scripts")
+	return filepath.Join(os.Getenv("HOME"), ".bundeck", "scripts")
 }
 
 func globExtensions(dir string, extensions []string) ([]string, error) {

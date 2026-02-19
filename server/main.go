@@ -33,10 +33,10 @@ type GUI struct {
 
 func NewGUI() *GUI {
 	gui := &GUI{
-		app:         app.NewWithID("dev.ibanks.opendesk-server"),
+		app:         app.NewWithID("dev.ibanks.bundeck-server"),
 		preferences: fyne.CurrentApp().Preferences(),
 	}
-	gui.window = gui.app.NewWindow("OpenDesk Server")
+	gui.window = gui.app.NewWindow("BunDeck Server")
 	return gui
 }
 
@@ -59,7 +59,7 @@ func (g *GUI) Run() {
 
 func (g *GUI) setupSystemTray() {
 	if desk, ok := g.app.(desktop.App); ok {
-		menu := fyne.NewMenu("OpenDesk Server",
+		menu := fyne.NewMenu("BunDeck Server",
 			fyne.NewMenuItem("Show", func() {
 				g.window.Show()
 			}))

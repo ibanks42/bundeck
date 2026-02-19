@@ -1,3 +1,3 @@
-pkill -9 -f opendeck-server
+pkill -9 -f bundeck-server
 
-go build && ./opendeck-server
+go build && ./bundeck-server

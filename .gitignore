@@ -19,9 +19,9 @@
 
 # Go workspace file
 go.work
-client/opendeck-client
-server/opendeck-server
-server/opendeck.db
+client/bundeck-client
+server/bundeck-server
+server/bundeck.db
 /server/fyne-cross
 /client/fyne-cross
 

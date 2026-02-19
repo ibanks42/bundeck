@@ -1,6 +1,6 @@
-# OpenDeck - An Open Source Stream Deck Alternative
+# BunDeck - An Open Source Stream Deck Alternative
 
-OpenDeck is a free and open-source alternative to the [Elgato Stream Deck](https://www.elgato.com/us/en/p/stream-deck-mk2-black).
+BunDeck is a free and open-source alternative to the [Elgato Stream Deck](https://www.elgato.com/us/en/p/stream-deck-mk2-black).
 
 Built with Go and Fyne, it aims to provide a similar experience with customizable buttons that trigger scripts and actions.
 
@@ -39,17 +39,17 @@ The client can be run on any of the [supported platforms](https://docs.fyne.io/s
 1. **Clone the repository:**
 
     ```bash
-    git clone https://github.com/ibanks/opendeck.git
+    git clone https://github.com/ibanks/bundeck.git
     ```
 
 2. **Navigate to the project directory:**
 
     ```bash
-    cd opendeck/client
+    cd bundeck/client
     ```
     or
    ```bash
-   cd opendeck/server
+   cd bundeck/server
    ```
 
 4. **Build the application:**
@@ -63,7 +63,7 @@ The client can be run on any of the [supported platforms](https://docs.fyne.io/s
 For example:
 
 ```bash
-fyne-cross android -app-id dev.ibanks.opendeck -icon Icon.png -name OpenDeck
+fyne-cross android -app-id dev.ibanks.bundeck -icon Icon.png -name BunDeck
 ```
 
 ## Contributing

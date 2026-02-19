@@ -1,3 +1,3 @@
-pkill -9 -f opendeck-client
+pkill -9 -f bundeck-client
 
-go build && ./opendeck-client
+go build && ./bundeck-client

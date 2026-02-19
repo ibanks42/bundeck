@@ -16,7 +16,7 @@ import (
 
 func init() {
 	// Initialize Fyne app for tests with a proper ID
-	app.NewWithID("dev.ibanks.opendesk-server.test")
+	app.NewWithID("dev.ibanks.bundeck-server.test")
 }
 
 func TestFiberGetScripts(t *testing.T) {
